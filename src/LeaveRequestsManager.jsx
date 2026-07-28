@@ -22,8 +22,8 @@ export default function LeaveRequestsManager({ user }) {
     try {
       // שליפת גם הבקשות וגם רשימת אנשי הצוות במקביל
       const [reqRes, staffRes] = await Promise.all([
-        axios.get('/leave-requests/'),
-        axios.get('/staff/')
+        api.get('/leave-requests/'),
+        api.get('/staff/')
       ]);
 
       setStaffList(staffRes.data);
@@ -54,7 +54,7 @@ export default function LeaveRequestsManager({ user }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/leave-requests/', formData);
+      await api.post('/leave-requests/', formData);
       alert('הבקשה הוגשה בהצלחה למנהל!');
       fetchData();
       setFormData(prev => ({

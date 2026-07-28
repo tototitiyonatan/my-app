@@ -47,10 +47,10 @@ export default function ScheduleManager({ isAdmin }) {
   const fetchData = async () => {
     try {
       const [stationsRes, staffRes, schedRes, absRes] = await Promise.all([
-        axios.get('/stations/'),
-        axios.get('/staff/'),
-        axios.get('/schedules/'),
-        axios.get('/absences/')
+        api.get('/stations/'),
+        api.get('/staff/'),
+        api.get('/schedules/'),
+        api.get('/absences/')
       ]);
       setStations(stationsRes.data);
       setStaff(staffRes.data);
@@ -65,7 +65,7 @@ export default function ScheduleManager({ isAdmin }) {
     e.preventDefault();
     if (!newStationName) return;
     try {
-      await axios.post('/stations/', {
+      await api.post('/stations/', {
         name: newStationName,
         parent_station_id: parentStationId ? parseInt(parentStationId) : null
       });
@@ -80,7 +80,7 @@ export default function ScheduleManager({ isAdmin }) {
   const handleAddSchedule = async (date, stationId, staffId) => {
     if (!staffId) return;
     try {
-      await axios.post('/schedules/', {
+      await api.post('/schedules/', {
         staff_id: staffId, date: date, station_id: stationId
       });
       fetchData();

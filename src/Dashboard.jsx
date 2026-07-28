@@ -14,7 +14,7 @@ export default function Dashboard() {
       setLoading(true);
       try {
         // פנייה לנקודת הקצה שיצרנו ב-FastAPI
-        const response = await axios.get(`/dashboard/stats?target_date=${targetDate}`);
+        const response = await api.get(`/dashboard/stats?target_date=${targetDate}`);
         setStats(response.data);
       } catch (error) {
         console.error('שגיאה בשליפת נתוני דאשבורד:', error);

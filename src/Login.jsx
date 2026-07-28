@@ -11,7 +11,7 @@ export default function Login({ onLogin }) {
   useEffect(() => {
     const fetchStaff = async () => {
       try {
-        const response = await axios.get('/staff/');
+        const response = await api.get('/staff/');
         setStaffList(response.data);
       } catch (err) {
         console.error('שגיאה בטעינת נתונים', err);

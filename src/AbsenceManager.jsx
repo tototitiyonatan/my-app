@@ -28,7 +28,7 @@ export default function AbsenceManager() {
 
   const fetchStaff = async () => {
     try {
-      const response = await axios.get('/staff/');
+      const response = await api.get('/staff/');
       setStaffList(response.data);
       if (response.data.length > 0) {
         setFormData(prev => ({ ...prev, staff_id: response.data[0].id }));
@@ -54,7 +54,7 @@ export default function AbsenceManager() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/absences/', formData);
+      await api.post('/absences/', formData);
       alert('היעדרות נרשמה בהצלחה!');
       fetchAbsences();
       setFormData(prev => ({
