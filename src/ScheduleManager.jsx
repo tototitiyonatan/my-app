@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from './api';
 
 export default function ScheduleManager({ isAdmin }) {
   const [stations, setStations] = useState([]);
