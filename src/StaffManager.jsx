@@ -3,7 +3,6 @@ import api from './api';
 
 export default function StaffManager() {
   const [staffList, setStaffList] = useState([]);
-
   const [formData, setFormData] = useState({
     id: '',
     first_name: '',
@@ -12,6 +11,8 @@ export default function StaffManager() {
     phone: '',
     email: ''
   });
+  const [editingId, setEditingId] = useState(null);
+  const [editFormData, setEditFormData] = useState({});
 
   const fetchStaff = async () => {
     try {
@@ -33,6 +34,13 @@ export default function StaffManager() {
     });
   };
 
+  const handleEditChange = (e) => {
+    setEditFormData({
+      ...editFormData,
+      [e.target.name]: e.target.value
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -47,6 +55,18 @@ export default function StaffManager() {
     }
   };
 
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      await api.put(`/staff/${editingId}`, editFormData);
+      alert('פרטי איש צוות עודכנו בהצלחה!');
+      setEditingId(null);
+      fetchStaff();
+    } catch (error) {
+      alert('שגיאה בעדכון פרטי איש צוות: ' + (error.response?.data?.detail || error.message));
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm('האם אתה בטוח שברצונך למחוק איש צוות זה?')) return;
     try {
@@ -58,29 +78,39 @@ export default function StaffManager() {
     }
   };
 
+  const handleEditClick = (staff) => {
+    setEditingId(staff.id);
+    setEditFormData(staff);
+  };
+
   return (
     <div dir="rtl" style={{ fontFamily: 'Arial', padding: '15px', maxWidth: '800px', margin: '0 auto' }}>
       <h2>ניהול אנשי צוות - חטיבת נשים</h2>
 
       <div style={{ border: '1px solid #ccc', padding: '15px', borderRadius: '5px', marginBottom: '20px' }}>
-        <h3>הוספת איש צוות חדש</h3>
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '10px' }} id="staff-form">
-          <input type="text" name="id" placeholder="תעודת זהות" value={formData.id} onChange={handleChange} required style={{ padding: '8px' }} />
-          <input type="text" name="first_name" placeholder="שם פרטי" value={formData.first_name} onChange={handleChange} required style={{ padding: '8px' }} />
-          <input type="text" name="last_name" placeholder="שם משפחה" value={formData.last_name} onChange={handleChange} required style={{ padding: '8px' }} />
+        <h3>{editingId ? 'עריכת פרטי איש צוות' : 'הוספת איש צוות חדש'}</h3>
+        <form onSubmit={editingId ? handleUpdate : handleSubmit} style={{ display: 'grid', gap: '10px' }} id="staff-form">
+          <input type="text" name="id" placeholder="תעודת זהות" value={editingId ? editFormData.id : formData.id} onChange={editingId ? handleEditChange : handleChange} required disabled={editingId} style={{ padding: '8px' }} />
+          <input type="text" name="first_name" placeholder="שם פרטי" value={editingId ? editFormData.first_name : formData.first_name} onChange={editingId ? handleEditChange : handleChange} required style={{ padding: '8px' }} />
+          <input type="text" name="last_name" placeholder="שם משפחה" value={editingId ? editFormData.last_name : formData.last_name} onChange={editingId ? handleEditChange : handleChange} required style={{ padding: '8px' }} />
 
-          <select name="role" value={formData.role} onChange={handleChange} style={{ padding: '8px' }}>
+          <select name="role" value={editingId ? editFormData.role : formData.role} onChange={editingId ? handleEditChange : handleChange} style={{ padding: '8px' }}>
             <option value="מנהל">מנהל</option>
             <option value="מומחה">מומחה</option>
             <option value="מתמחה">מתמחה</option>
           </select>
 
-          <input type="tel" name="phone" placeholder="טלפון" value={formData.phone} onChange={handleChange} style={{ padding: '8px' }} />
-          <input type="email" name="email" placeholder="דואר אלקטרוני" value={formData.email} onChange={handleChange} style={{ padding: '8px' }} />
+          <input type="tel" name="phone" placeholder="טלפון" value={editingId ? editFormData.phone : formData.phone} onChange={editingId ? handleEditChange : handleChange} style={{ padding: '8px' }} />
+          <input type="email" name="email" placeholder="דואר אלקטרוני" value={editingId ? editFormData.email : formData.email} onChange={editingId ? handleEditChange : handleChange} style={{ padding: '8px' }} />
 
-          <button type="submit" style={{ padding: '10px', background: '#007BFF', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '16px' }}>
-            הוסף איש צוות
+          <button type="submit" style={{ padding: '10px', background: editingId ? '#28a745' : '#007BFF', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '16px' }}>
+            {editingId ? 'שמור שינויים' : 'הוסף איש צוות'}
           </button>
+          {editingId && (
+            <button type="button" onClick={() => setEditingId(null)} style={{ padding: '10px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '16px' }}>
+              בטל
+            </button>
+          )}
         </form>
       </div>
 
@@ -106,6 +136,9 @@ export default function StaffManager() {
                 <td style={{ padding: '8px' }}>{staff.phone}</td>
                 <td style={{ padding: '8px' }}>{staff.email}</td>
                 <td style={{ padding: '8px', textAlign: 'center' }}>
+                  <button onClick={() => handleEditClick(staff)} style={{ background: '#ffc107', color: 'black', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontWeight: 'bold', marginRight: '5px' }}>
+                    ערוך
+                  </button>
                   <button
                     onClick={() => handleDelete(staff.id)}
                     style={{
