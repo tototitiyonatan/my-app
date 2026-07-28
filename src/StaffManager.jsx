@@ -55,6 +55,18 @@ export default function StaffManager() {
     }
   };
 
+  // פונקציה למחיקת איש צוות לפי תעודת זהות
+  const handleDelete = async (id) => {
+    if (!window.confirm('האם אתה בטוח שברצונך למחוק איש צוות זה?')) return;
+    try {
+      await api.delete(`/staff/${id}`);
+      alert('איש צוות נמחק בהצלחה');
+      fetchStaff(); // רענון הטבלה
+    } catch (error) {
+      alert('שגיאה במחיקת איש צוות: ' + (error.response?.data?.detail || error.message));
+    }
+  };
+
   return (
     <div dir="rtl" style={{ fontFamily: 'Arial', padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
       <h2>ניהול אנשי צוות - חטיבת נשים</h2>
@@ -92,6 +104,7 @@ export default function StaffManager() {
             <th style={{ padding: '8px' }}>תפקיד</th>
             <th style={{ padding: '8px' }}>טלפון</th>
             <th style={{ padding: '8px' }}>דוא"ל</th>
+            <th style={{ padding: '8px', textAlign: 'center' }}>פעולות</th>
           </tr>
         </thead>
         <tbody>
@@ -102,6 +115,23 @@ export default function StaffManager() {
               <td style={{ padding: '8px' }}>{staff.role}</td>
               <td style={{ padding: '8px' }}>{staff.phone}</td>
               <td style={{ padding: '8px' }}>{staff.email}</td>
+              <td style={{ padding: '8px', textAlign: 'center' }}>
+                <button
+                  onClick={() => handleDelete(staff.id)}
+                  style={{
+                    background: '#dc3545',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '4px 8px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold'
+                  }}
+                  title="הסר איש צוות"
+                >
+                  ✕
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
