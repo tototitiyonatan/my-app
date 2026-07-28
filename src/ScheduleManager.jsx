@@ -92,10 +92,10 @@ export default function ScheduleManager({ isAdmin }) {
   // פונקציית מחיקת שיבוץ מתחנה
   const handleDeleteSchedule = async (scheduleId) => {
     try {
-      await axios.delete(`/schedules/${scheduleId}`);
+      await api.delete(`/schedules/${scheduleId}`);
       fetchData(); // רענון הטבלה
     } catch (error) {
-      alert('שגיאה במחיקת השיבוץ');
+      alert(error.response?.data?.detail || 'שגיאה במחיקת השיבוץ');
     }
   };
 

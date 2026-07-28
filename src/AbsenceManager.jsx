@@ -72,7 +72,7 @@ export default function AbsenceManager() {
   const handleDelete = async (id) => {
     if (!window.confirm('האם אתה בטוח שברצונך למחוק היעדרות זו?')) return;
     try {
-      await axios.delete(`/absences/${id}`);
+      await api.delete(`/absences/${id}`);
       alert('ההיעדרות נמחקה בהצלחה!');
       fetchAbsences(); // רענון הטבלה
     } catch (error) {
