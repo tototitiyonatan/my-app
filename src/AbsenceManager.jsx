@@ -86,11 +86,11 @@ export default function AbsenceManager() {
   };
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '15px' }}>
       <h2>ניהול היעדרויות</h2>
 
       <div style={{ border: '1px solid #ccc', padding: '20px', borderRadius: '8px', marginBottom: '30px', backgroundColor: '#f9f9f9' }}>
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }} id="absence-form">
 
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <label>איש צוות:</label>
@@ -141,37 +141,60 @@ export default function AbsenceManager() {
       </div>
 
       <h3>היעדרויות קודמות ועתידיות</h3>
-      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
-        <thead>
-          <tr style={{ background: '#eee', borderBottom: '2px solid #ccc' }}>
-            <th style={{ padding: '10px' }}>שם איש צוות</th>
-            <th style={{ padding: '10px' }}>סוג היעדרות</th>
-            <th style={{ padding: '10px' }}>מתאריך</th>
-            <th style={{ padding: '10px' }}>עד תאריך</th>
-            <th style={{ padding: '10px' }}>הערות</th>
-            <th style={{ padding: '10px' }}>פעולות</th>
-          </tr>
-        </thead>
-        <tbody>
-          {absencesList.map((absence) => (
-            <tr key={absence.id} style={{ borderBottom: '1px solid #ddd' }}>
-              <td style={{ padding: '10px' }}>{getStaffName(absence.staff_id)}</td>
-              <td style={{ padding: '10px', color: '#d32f2f', fontWeight: 'bold' }}>{absence.status_type}</td>
-              <td style={{ padding: '10px' }}>{formatDateToIL(absence.start_date)}</td>
-              <td style={{ padding: '10px' }}>{formatDateToIL(absence.end_date)}</td>
-              <td style={{ padding: '10px' }}>{absence.notes}</td>
-              <td style={{ padding: '10px' }}>
-                <button
-                  onClick={() => handleDelete(absence.id)}
-                  style={{ background: '#F44336', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}
-                >
-                  מחק
-                </button>
-              </td>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', minWidth: '600px' }} id="absences-table">
+          <thead>
+            <tr style={{ background: '#eee', borderBottom: '2px solid #ccc' }}>
+              <th style={{ padding: '10px' }}>שם איש צוות</th>
+              <th style={{ padding: '10px' }}>סוג היעדרות</th>
+              <th style={{ padding: '10px' }}>מתאריך</th>
+              <th style={{ padding: '10px' }}>עד תאריך</th>
+              <th style={{ padding: '10px' }}>הערות</th>
+              <th style={{ padding: '10px' }}>פעולות</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {absencesList.map((absence) => (
+              <tr key={absence.id} style={{ borderBottom: '1px solid #ddd' }}>
+                <td style={{ padding: '10px' }}>{getStaffName(absence.staff_id)}</td>
+                <td style={{ padding: '10px', color: '#d32f2f', fontWeight: 'bold' }}>{absence.status_type}</td>
+                <td style={{ padding: '10px' }}>{formatDateToIL(absence.start_date)}</td>
+                <td style={{ padding: '10px' }}>{formatDateToIL(absence.end_date)}</td>
+                <td style={{ padding: '10px' }}>{absence.notes}</td>
+                <td style={{ padding: '10px' }}>
+                  <button
+                    onClick={() => handleDelete(absence.id)}
+                    style={{ background: '#F44336', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}
+                  >
+                    מחק
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <style>{`
+        @media (max-width: 600px) {
+          #absence-form {
+            grid-template-columns: 1fr; /* Stack form elements vertically */
+          }
+          #absence-form > div {
+            grid-column: auto !important; /* Override gridColumn for notes and button */
+          }
+          #absences-table th, #absences-table td {
+            padding: 8px 5px; /* Reduce padding */
+            font-size: 12px; /* Smaller font size */
+          }
+          #absences-table button {
+            padding: 4px 8px;
+            font-size: 11px;
+          }
+          h2, h3 {
+            font-size: 1.2em;
+          }
+        }
+      `}</style>
     </div>
   );
 }
