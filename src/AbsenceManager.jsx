@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from './api';
+import axios from 'axios';
 
 export default function AbsenceManager() {
   const [absencesList, setAbsencesList] = useState([]);
