@@ -13,6 +13,7 @@ export default function StaffManager() {
   });
   const [editingId, setEditingId] = useState(null);
   const [editFormData, setEditFormData] = useState({});
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const fetchStaff = async () => {
     try {
@@ -83,6 +84,32 @@ export default function StaffManager() {
     setEditFormData(staff);
   };
 
+  const handleFileChange = (event) => {
+    setSelectedFile(event.target.files[0]);
+  };
+
+  const handleFileUpload = async () => {
+    if (!selectedFile) {
+      alert("Please select a file first.");
+      return;
+    }
+
+    const uploadData = new FormData();
+    uploadData.append("file", selectedFile);
+
+    try {
+      const response = await api.post("/staff/upload", uploadData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      alert(response.data.message);
+      fetchStaff();
+    } catch (error) {
+      alert('File upload failed: ' + (error.response?.data?.detail || error.message));
+    }
+  };
+
   return (
     <div dir="rtl" style={{ fontFamily: 'Arial', padding: '15px', maxWidth: '800px', margin: '0 auto' }}>
       <h2>ניהול אנשי צוות - חטיבת נשים</h2>
@@ -112,6 +139,14 @@ export default function StaffManager() {
             </button>
           )}
         </form>
+      </div>
+
+      <div style={{ border: '1px solid #ccc', padding: '15px', borderRadius: '5px', marginBottom: '20px' }}>
+          <h3>העלאת קובץ CSV</h3>
+          <input type="file" onChange={handleFileChange} accept=".csv" />
+          <button onClick={handleFileUpload} style={{ padding: '10px', background: '#17a2b8', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '16px' }}>
+            העלה קובץ
+          </button>
       </div>
 
       <h3>רשימת הצוות</h3>
