@@ -55,10 +55,14 @@ export default function ScheduleManager({ isAdmin }) {
 
     console.log(`Fetching holidays for months: ${[...months]} in year ${year}`);
 
+    const majorIslamicHolidays = [
+        "Eid al-Fitr", "Eid al-Adha", "Laylat al-Qadr", "Muharram", "Mawlid al-Nabi"
+    ];
+
     // Fetch Hebrew holidays
     for (const month of months) {
         try {
-            const hebcalResponse = await fetch(`https://www.hebcal.com/hebcal?v=1&cfg=json&maj=on&min=on&mod=on&nx=on&year=${year}&month=${month}&ss=on&mf=on&c=on&geo=geoname&geonameid=293397&m=50&s=on`);
+            const hebcalResponse = await fetch(`https://www.hebcal.com/hebcal?v=1&cfg=json&maj=on&year=${year}&month=${month}&geonameid=293397`);
             const hebcalData = await hebcalResponse.json();
             console.log("Hebcal API response for month", month, hebcalData);
             if (hebcalData.items) {
@@ -81,9 +85,12 @@ export default function ScheduleManager({ isAdmin }) {
             const hijriResponse = await fetch(`https://api.aladhan.com/v1/gToH?date=${d}-${m}-${y}`);
             const hijriData = await hijriResponse.json();
             if (hijriData.data.hijri.holidays.length > 0) {
-                const holidayName = hijriData.data.hijri.holidays[0];
-                console.log("Found Islamic holiday:", holidayName, "on", day);
-                newHolidays[day] = newHolidys[day] ? `${newHolidays[day]}, ${holidayName}` : holidayName;
+                hijriData.data.hijri.holidays.forEach(holidayName => {
+                    if (majorIslamicHolidays.some(majorHoliday => holidayName.includes(majorHoliday))) {
+                        console.log("Found major Islamic holiday:", holidayName, "on", day);
+                        newHolidays[day] = newHolidays[day] ? `${newHolidays[day]}, ${holidayName}` : holidayName;
+                    }
+                });
             }
         } catch (error) {
             console.error('Error fetching Islamic holidays:', error);
