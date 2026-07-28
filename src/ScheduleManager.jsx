@@ -154,8 +154,14 @@ export default function ScheduleManager({ isAdmin }) {
   const isScheduledOnDay = (staffId, day) =>
     schedules.some(s => s.staff_id === staffId && s.date === day);
 
-  const getUnscheduledForDay = (day) =>
-    staff.filter(s => !isScheduledOnDay(s.id, day) && !isAbsentOnDay(s.id, day));
+  const getUnscheduledForDay = (day) => {
+    const unscheduled = staff.filter(s => !isScheduledOnDay(s.id, day) && !isAbsentOnDay(s.id, day));
+    return {
+      specialists: unscheduled.filter(s => s.role === 'מומחה'),
+      interns: unscheduled.filter(s => s.role === 'מתמחה'),
+      all: unscheduled
+    };
+  };
 
   const exportToExcel = () => {
     window.location.href = `/schedules/export/excel?start_date=${currentDay}&end_date=${currentDay}`;
@@ -185,6 +191,8 @@ export default function ScheduleManager({ isAdmin }) {
       setDraggedStaffId(null);
     }
   };
+
+  const unscheduledForDay = getUnscheduledForDay(currentDay);
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 10px' }}>
@@ -232,7 +240,8 @@ export default function ScheduleManager({ isAdmin }) {
               {headerGroups.map(hg => (
                 <th key={hg.id} colSpan={hg.colSpan} style={{ padding: '8px', border: '1px solid #ddd' }}>{hg.name}</th>
               ))}
-              <th style={{ padding: '8px', border: '1px solid #ddd', background: '#FF9800', minWidth: '110px' }}>לא משובצים</th>
+              <th style={{ padding: '8px', border: '1px solid #ddd', background: '#FF9800', minWidth: '110px' }}>לא משובצים - מומחים</th>
+              <th style={{ padding: '8px', border: '1px solid #ddd', background: '#FF9800', minWidth: '110px' }}>לא משובצים - מתמחים</th>
               <th style={{ padding: '8px', border: '1px solid #ddd', background: '#F44336', minWidth: '100px' }}>היעדרויות</th>
             </tr>
             <tr style={{ background: '#5C6BC0', color: 'white', fontSize: '13px' }}>
@@ -276,7 +285,7 @@ export default function ScheduleManager({ isAdmin }) {
                         style={{ width: '100%', marginTop: '5px', padding: '4px', fontSize: '12px' }}
                       >
                         <option value="">+ שבץ</option>
-                        {getUnscheduledForDay(currentDay).map(person => (<option key={person.id} value={person.id}>{person.last_name}</option>))}
+                        {unscheduledForDay.all.map(person => (<option key={person.id} value={person.id}>{person.last_name}</option>))}
                       </select>
                     )}
                   </td>
@@ -284,7 +293,19 @@ export default function ScheduleManager({ isAdmin }) {
               })}
 
               <td style={{ padding: '5px', border: '1px solid #ddd', verticalAlign: 'top', background: '#fff3e0' }}>
-                {getUnscheduledForDay(currentDay).map(person => {
+                {unscheduledForDay.specialists.map(person => (
+                  <div
+                    key={person.id}
+                    draggable={isAdmin}
+                    onDragStart={() => handleDragStart(person.id)}
+                    style={{ background: 'white', border: '1px solid #ffcc80', padding: '4px', borderRadius: '4px', marginBottom: '4px', fontSize: '12px', cursor: isAdmin ? 'grab' : 'default' }}
+                  >
+                    {person.last_name}
+                  </div>
+                ))}
+              </td>
+              <td style={{ padding: '5px', border: '1px solid #ddd', verticalAlign: 'top', background: '#fff3e0' }}>
+                {unscheduledForDay.interns.map(person => {
                   const stage = getStageLabel(person.id, currentDay);
                   return (
                     <div
