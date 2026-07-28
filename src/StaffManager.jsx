@@ -122,7 +122,7 @@ export default function StaffManager() {
   };
 
   return (
-    <div dir="rtl" style={{ fontFamily: 'Arial', padding: '15px', maxWidth: '800px', margin: '0 auto' }}>
+    <div dir="rtl" style={{ fontFamily: 'Arial', padding: '15px' }}>
       <h2>ניהול אנשי צוות - חטיבת נשים</h2>
 
       <div style={{ border: '1px solid #ccc', padding: '15px', borderRadius: '5px', marginBottom: '20px' }}>

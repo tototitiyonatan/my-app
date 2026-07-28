@@ -141,7 +141,7 @@ export default function MonthlyView() {
   };
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
+    <div style={{ padding: '20px' }}>
       <h2>תצוגה חודשית - מתמחים</h2>
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', marginBottom: '20px' }}>
         <button onClick={() => handleMonthChange(-1)}>חודש קודם</button>

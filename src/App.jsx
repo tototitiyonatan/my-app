@@ -29,7 +29,7 @@ function App() {
   });
 
   return (
-    <div dir="rtl" style={{ fontFamily: 'Arial, sans-serif', padding: '20px' }}>
+    <div dir="rtl" style={{ fontFamily: 'Arial, sans-serif', padding: '20px', width: '95%', margin: '0 auto' }}>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #ccc', paddingBottom: '10px', marginBottom: '20px' }}>
         <h1 style={{ color: '#333', margin: 0, fontSize: '24px' }}>מערכת ניהול חטיבת נשים סורוקה</h1>

@@ -23,7 +23,7 @@ export default function Dashboard() {
   }, [targetDate]);
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '15px' }}>
+    <div style={{ padding: '15px' }}>
       <div id="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
         <h2 style={{ margin: 0 }}>תמונת מצב יומית</h2>
         <div>

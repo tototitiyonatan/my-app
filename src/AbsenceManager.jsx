@@ -86,7 +86,7 @@ export default function AbsenceManager() {
   };
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '15px' }}>
+    <div style={{ padding: '15px' }}>
       <h2>ניהול היעדרויות</h2>
 
       <div style={{ border: '1px solid #ccc', padding: '20px', borderRadius: '8px', marginBottom: '30px', backgroundColor: '#f9f9f9' }}>
