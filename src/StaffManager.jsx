@@ -79,6 +79,17 @@ export default function StaffManager() {
     }
   };
 
+  const handleDeleteAll = async () => {
+    if (!window.confirm('האם אתה בטוח שברצונך למחוק את כל אנשי הצוות? פעולה זו אינה הפיכה.')) return;
+    try {
+      await api.delete('/staff/all');
+      alert('כל אנשי הצוות נמחקו בהצלחה');
+      fetchStaff();
+    } catch (error) {
+      alert('שגיאה במחיקת כל אנשי הצוות: ' + (error.response?.data?.detail || error.message));
+    }
+  };
+
   const handleEditClick = (staff) => {
     setEditingId(staff.id);
     setEditFormData(staff);
@@ -146,6 +157,13 @@ export default function StaffManager() {
           <input type="file" onChange={handleFileChange} accept=".csv" />
           <button onClick={handleFileUpload} style={{ padding: '10px', background: '#17a2b8', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '16px' }}>
             העלה קובץ
+          </button>
+      </div>
+
+      <div style={{ border: '1px solid #dc3545', padding: '15px', borderRadius: '5px', marginBottom: '20px' }}>
+          <h3>אזור סכנה</h3>
+          <button onClick={handleDeleteAll} style={{ padding: '10px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '16px' }}>
+            מחק את כל אנשי הצוות
           </button>
       </div>
 
