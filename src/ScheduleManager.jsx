@@ -47,41 +47,50 @@ export default function ScheduleManager({ isAdmin }) {
   }, [weekOffset]);
 
   const fetchHolidays = async (days) => {
-    const year = new Date(days[0]).getFullYear();
-    const month = new Date(days[0]).getMonth() + 1;
     const newHolidays = {};
+    const firstDay = new Date(days[0]);
+    const lastDay = new Date(days[6]);
+    const months = new Set([firstDay.getMonth() + 1, lastDay.getMonth() + 1]);
+    const year = firstDay.getFullYear();
+
+    console.log(`Fetching holidays for months: ${[...months]} in year ${year}`);
 
     // Fetch Hebrew holidays
-    try {
-      const response = await fetch(`https://www.hebcal.com/converter?cfg=json&gy=${year}&gm=${month}&gd=1&g2h=1`);
-      const data = await response.json();
-      if (data.events) {
-        data.events.forEach(event => {
-          const eventDate = new Date(event.date).toISOString().split('T')[0];
-          if (days.includes(eventDate)) {
-            newHolidays[eventDate] = event.title;
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching Hebrew holidays:', error);
+    for (const month of months) {
+        try {
+            const hebcalResponse = await fetch(`https://www.hebcal.com/hebcal?v=1&cfg=json&maj=on&min=on&mod=on&nx=on&year=${year}&month=${month}&ss=on&mf=on&c=on&geo=geoname&geonameid=293397&m=50&s=on`);
+            const hebcalData = await hebcalResponse.json();
+            console.log("Hebcal API response for month", month, hebcalData);
+            if (hebcalData.items) {
+                hebcalData.items.forEach(event => {
+                    const eventDate = new Date(event.date).toISOString().split('T')[0];
+                    if (days.includes(eventDate)) {
+                        newHolidays[eventDate] = newHolidays[eventDate] ? `${newHolidays[eventDate]}, ${event.title}` : event.title;
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching Hebrew holidays:', error);
+        }
     }
 
     // Fetch Islamic holidays
     for (const day of days) {
         try {
             const [y, m, d] = day.split('-');
-            const response = await fetch(`https://api.aladhan.com/v1/gToH?date=${d}-${m}-${y}`);
-            const data = await response.json();
-            if (data.data.hijri.holidays.length > 0) {
-                const holidayName = data.data.hijri.holidays[0];
-                newHolidays[day] = newHolidays[day] ? `${newHolidays[day]}, ${holidayName}` : holidayName;
+            const hijriResponse = await fetch(`https://api.aladhan.com/v1/gToH?date=${d}-${m}-${y}`);
+            const hijriData = await hijriResponse.json();
+            if (hijriData.data.hijri.holidays.length > 0) {
+                const holidayName = hijriData.data.hijri.holidays[0];
+                console.log("Found Islamic holiday:", holidayName, "on", day);
+                newHolidays[day] = newHolidys[day] ? `${newHolidays[day]}, ${holidayName}` : holidayName;
             }
         } catch (error) {
             console.error('Error fetching Islamic holidays:', error);
         }
     }
 
+    console.log("Final holidays object:", newHolidays);
     setHolidays(newHolidays);
   };
 
