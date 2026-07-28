@@ -195,7 +195,7 @@ export default function ScheduleManager({ isAdmin }) {
   const unscheduledForDay = getUnscheduledForDay(currentDay);
 
   return (
-    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 10px' }}>
+    <div style={{ maxWidth: '95%', margin: '0 auto', padding: '0 10px' }}>
 
       <div id="controls-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '15px', background: '#f5f5f5', borderRadius: '8px', flexWrap: 'wrap', gap: '15px' }}>
         {isAdmin && (
@@ -234,7 +234,7 @@ export default function ScheduleManager({ isAdmin }) {
       </div>
 
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', minWidth: '900px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', minWidth: '1200px' }}>
           <thead>
             <tr style={{ background: '#3F51B5', color: 'white' }}>
               {headerGroups.map(hg => (
@@ -341,13 +341,6 @@ export default function ScheduleManager({ isAdmin }) {
           form, button, select, #controls-panel, #action-buttons { display: none !important; }
           body { -webkit-print-color-adjust: exact; }
           @page { size: landscape; }
-        }
-        @media (max-width: 768px) {
-          #controls-panel, #action-buttons { flex-direction: column; align-items: stretch; }
-          #controls-panel form { flex-direction: column; align-items: stretch; width: 100%; }
-          h3 { font-size: 1em; }
-          th, td { padding: 5px !important; font-size: 12px !important; }
-          span, strong { font-size: 11px !important; }
         }
       `}</style>
     </div>
