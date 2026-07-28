@@ -7,11 +7,13 @@ export default function ScheduleManager({ isAdmin }) {
   const [schedules, setSchedules] = useState([]);
   const [absences, setAbsences] = useState([]);
   const [holidays, setHolidays] = useState({});
+  const [internStages, setInternStages] = useState([]);
 
   const [newStationName, setNewStationName] = useState('');
   const [parentStationId, setParentStationId] = useState('');
-
   const [weekOffset, setWeekOffset] = useState(0);
+  const [draggedStaffId, setDraggedStaffId] = useState(null);
+  const [stageUploadMsg, setStageUploadMsg] = useState('');
 
   const formatDateToIL = (dateString) => {
     if (!dateString) return '';
@@ -25,15 +27,12 @@ export default function ScheduleManager({ isAdmin }) {
     const dayOfWeek = today.getDay();
     const sunday = new Date(today);
     sunday.setDate(today.getDate() - dayOfWeek + (weekOffset * 7));
-
     for (let i = 0; i < 7; i++) {
       const nextDay = new Date(sunday);
       nextDay.setDate(sunday.getDate() + i);
-
       const year = nextDay.getFullYear();
       const month = String(nextDay.getMonth() + 1).padStart(2, '0');
       const day = String(nextDay.getDate()).padStart(2, '0');
-
       days.push(`${year}-${month}-${day}`);
     }
     return days;
@@ -52,67 +51,54 @@ export default function ScheduleManager({ isAdmin }) {
     const lastDay = new Date(days[6]);
     const months = new Set([firstDay.getMonth() + 1, lastDay.getMonth() + 1]);
     const year = firstDay.getFullYear();
+    const majorIslamicHolidays = ["Eid al-Fitr", "Eid al-Adha", "Laylat al-Qadr", "Muharram", "Mawlid al-Nabi"];
 
-    console.log(`Fetching holidays for months: ${[...months]} in year ${year}`);
-
-    const majorIslamicHolidays = [
-        "Eid al-Fitr", "Eid al-Adha", "Laylat al-Qadr", "Muharram", "Mawlid al-Nabi"
-    ];
-
-    // Fetch Hebrew holidays
     for (const month of months) {
-        try {
-            const hebcalResponse = await fetch(`https://www.hebcal.com/hebcal?v=1&cfg=json&maj=on&year=${year}&month=${month}&geonameid=293397`);
-            const hebcalData = await hebcalResponse.json();
-            console.log("Hebcal API response for month", month, hebcalData);
-            if (hebcalData.items) {
-                hebcalData.items.forEach(event => {
-                    const eventDate = new Date(event.date).toISOString().split('T')[0];
-                    if (days.includes(eventDate)) {
-                        newHolidays[eventDate] = newHolidays[eventDate] ? `${newHolidays[eventDate]}, ${event.title}` : event.title;
-                    }
-                });
+      try {
+        const hebcalResponse = await fetch(`https://www.hebcal.com/hebcal?v=1&cfg=json&maj=on&year=${year}&month=${month}&geonameid=293397`);
+        const hebcalData = await hebcalResponse.json();
+        if (hebcalData.items) {
+          hebcalData.items.forEach(event => {
+            const eventDate = new Date(event.date).toISOString().split('T')[0];
+            if (days.includes(eventDate)) {
+              newHolidays[eventDate] = newHolidays[eventDate] ? `${newHolidays[eventDate]}, ${event.title}` : event.title;
             }
-        } catch (error) {
-            console.error('Error fetching Hebrew holidays:', error);
+          });
         }
+      } catch (error) { console.error('Error fetching Hebrew holidays:', error); }
     }
 
-    // Fetch Islamic holidays
     for (const day of days) {
-        try {
-            const [y, m, d] = day.split('-');
-            const hijriResponse = await fetch(`https://api.aladhan.com/v1/gToH?date=${d}-${m}-${y}`);
-            const hijriData = await hijriResponse.json();
-            if (hijriData.data.hijri.holidays.length > 0) {
-                hijriData.data.hijri.holidays.forEach(holidayName => {
-                    if (majorIslamicHolidays.some(majorHoliday => holidayName.includes(majorHoliday))) {
-                        console.log("Found major Islamic holiday:", holidayName, "on", day);
-                        newHolidays[day] = newHolidays[day] ? `${newHolidays[day]}, ${holidayName}` : holidayName;
-                    }
-                });
+      try {
+        const [y, m, d] = day.split('-');
+        const hijriResponse = await fetch(`https://api.aladhan.com/v1/gToH?date=${d}-${m}-${y}`);
+        const hijriData = await hijriResponse.json();
+        if (hijriData.data.hijri.holidays.length > 0) {
+          hijriData.data.hijri.holidays.forEach(holidayName => {
+            if (majorIslamicHolidays.some(mh => holidayName.includes(mh))) {
+              newHolidays[day] = newHolidays[day] ? `${newHolidays[day]}, ${holidayName}` : holidayName;
             }
-        } catch (error) {
-            console.error('Error fetching Islamic holidays:', error);
+          });
         }
+      } catch (error) { console.error('Error fetching Islamic holidays:', error); }
     }
-
-    console.log("Final holidays object:", newHolidays);
     setHolidays(newHolidays);
   };
 
   const fetchData = async () => {
     try {
-      const [stationsRes, staffRes, schedRes, absRes] = await Promise.all([
+      const [stationsRes, staffRes, schedRes, absRes, stagesRes] = await Promise.all([
         api.get('/stations/'),
         api.get('/staff/'),
         api.get('/schedules/'),
-        api.get('/absences/')
+        api.get('/absences/'),
+        api.get('/intern-stages/')
       ]);
       setStations(stationsRes.data);
       setStaff(staffRes.data);
       setSchedules(schedRes.data);
       setAbsences(absRes.data);
+      setInternStages(stagesRes.data);
     } catch (error) {
       console.error('שגיאה בשליפת נתונים:', error);
     }
@@ -122,37 +108,41 @@ export default function ScheduleManager({ isAdmin }) {
     e.preventDefault();
     if (!newStationName) return;
     try {
-      await api.post('/stations/', {
-        name: newStationName,
-        parent_station_id: parentStationId ? parseInt(parentStationId) : null
-      });
+      await api.post('/stations/', { name: newStationName, parent_station_id: parentStationId ? parseInt(parentStationId) : null });
       setNewStationName('');
       setParentStationId('');
       fetchData();
-    } catch (error) {
-      alert('שגיאה בהוספת תחנה');
-    }
+    } catch (error) { alert('שגיאה בהוספת תחנה'); }
   };
 
   const handleAddSchedule = async (date, stationId, staffId) => {
     if (!staffId) return;
     try {
-      await api.post('/schedules/', {
-        staff_id: staffId, date: date, station_id: stationId
-      });
+      await api.post('/schedules/', { staff_id: staffId, date, station_id: stationId });
       fetchData();
-    } catch (error) {
-      alert(error.response?.data?.detail || 'שגיאה בשיבוץ');
-    }
+    } catch (error) { alert(error.response?.data?.detail || 'שגיאה בשיבוץ'); }
   };
 
-  // פונקציית מחיקת שיבוץ מתחנה
   const handleDeleteSchedule = async (scheduleId) => {
     try {
       await api.delete(`/schedules/${scheduleId}`);
-      fetchData(); // רענון הטבלה
+      fetchData();
+    } catch (error) { alert(error.response?.data?.detail || 'שגיאה במחיקת השיבוץ'); }
+  };
+
+  const handleUploadStages = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await api.post('/intern-stages/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setStageUploadMsg(res.data.message);
+      fetchData();
     } catch (error) {
-      alert(error.response?.data?.detail || 'שגיאה במחיקת השיבוץ');
+      setStageUploadMsg(error.response?.data?.detail || 'שגיאה בהעלאת קובץ השלבים');
     }
   };
 
@@ -160,6 +150,25 @@ export default function ScheduleManager({ isAdmin }) {
     const person = staff.find(s => s.id === id);
     return person ? `${person.first_name} ${person.last_name}` : id;
   };
+
+  // Returns the stage in parens for an intern for a given date (based on year+month)
+  const getStageLabel = (staffId, dateStr) => {
+    const person = staff.find(s => s.id === staffId);
+    if (!person || person.role !== 'מתמחה') return null;
+    const [year, month] = dateStr.split('-').map(Number);
+    const stage = internStages.find(s => s.staff_id === staffId && s.year === year && s.month === month);
+    return stage ? stage.stage_name : null;
+  };
+
+  const isAbsentOnDay = (staffId, day) =>
+    absences.some(a => a.staff_id === staffId && a.start_date <= day && a.end_date >= day);
+
+  const isScheduledOnDay = (staffId, day) =>
+    schedules.some(s => s.staff_id === staffId && s.date === day);
+
+  // Unscheduled pool for a given day: not scheduled anywhere AND not absent (absence = considered "handled")
+  const getUnscheduledForDay = (day) =>
+    staff.filter(s => !isScheduledOnDay(s.id, day) && !isAbsentOnDay(s.id, day));
 
   const exportToExcel = () => {
     const startDate = currentWeekDays[0];
@@ -182,44 +191,45 @@ export default function ScheduleManager({ isAdmin }) {
     }
   });
 
+  const handleDragStart = (staffId) => setDraggedStaffId(staffId);
+  const handleDragOverCell = (e) => e.preventDefault();
+  const handleDropOnStation = (e, day, stationId) => {
+    e.preventDefault();
+    if (draggedStaffId) {
+      handleAddSchedule(day, stationId, draggedStaffId);
+      setDraggedStaffId(null);
+    }
+  };
+
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 10px' }}>
+    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 10px' }}>
 
       <div id="controls-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '15px', background: '#f5f5f5', borderRadius: '8px', flexWrap: 'wrap', gap: '15px' }}>
         {isAdmin ? (
-          <form onSubmit={handleAddStation} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-            <input
-              type="text"
-              placeholder="שם התחנה החדשה..."
-              value={newStationName}
-              onChange={(e) => setNewStationName(e.target.value)}
-              style={{ padding: '8px', flex: '1 1 150px' }}
-            />
-            <select
-              value={parentStationId}
-              onChange={(e) => setParentStationId(e.target.value)}
-              style={{ padding: '8px', flex: '1 1 150px' }}
-            >
-              <option value="">-- זוהי תחנה ראשית --</option>
-              {mainStations.map(station => (
-                <option key={station.id} value={station.id}>תת-תחנה של: {station.name}</option>
-              ))}
-            </select>
-            <button type="submit" style={{ padding: '8px 15px', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', flex: '1 1 100px' }}>
-              הוסף תחנה
-            </button>
-          </form>
+          <>
+            <form onSubmit={handleAddStation} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <input type="text" placeholder="שם התחנה החדשה..." value={newStationName} onChange={(e) => setNewStationName(e.target.value)} style={{ padding: '8px', flex: '1 1 150px' }} />
+              <select value={parentStationId} onChange={(e) => setParentStationId(e.target.value)} style={{ padding: '8px', flex: '1 1 150px' }}>
+                <option value="">-- זוהי תחנה ראשית --</option>
+                {mainStations.map(station => (<option key={station.id} value={station.id}>תת-תחנה של: {station.name}</option>))}
+              </select>
+              <button type="submit" style={{ padding: '8px 15px', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', flex: '1 1 100px' }}>הוסף תחנה</button>
+            </form>
+            <div>
+              <label style={{ padding: '8px 15px', background: '#3F51B5', color: 'white', borderRadius: '4px', cursor: 'pointer', display: 'inline-block' }}>
+                📄 העלה קובץ שלבי מתמחים
+                <input type="file" accept=".xlsx,.xls,.csv" onChange={handleUploadStages} style={{ display: 'none' }} />
+              </label>
+              {stageUploadMsg && <div style={{ fontSize: '12px', marginTop: '5px' }}>{stageUploadMsg}</div>}
+            </div>
+          </>
         ) : (
           <div style={{ fontWeight: 'bold', color: '#666' }}>תצוגת מערכת קריאה בלבד</div>
         )}
 
         <div id="action-buttons" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button onClick={exportToExcel} style={{ padding: '8px 15px', background: '#217346', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-            📊 ייצוא לאקסל
-          </button>
-          <button onClick={() => window.print()} style={{ padding: '8px 15px', background: '#607D8B', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-            🖨️ הדפס PDF
-          </button>
+          <button onClick={exportToExcel} style={{ padding: '8px 15px', background: '#217346', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>📊 ייצוא לאקסל</button>
+          <button onClick={() => window.print()} style={{ padding: '8px 15px', background: '#607D8B', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>🖨️ הדפס PDF</button>
         </div>
       </div>
 
@@ -230,16 +240,15 @@ export default function ScheduleManager({ isAdmin }) {
       </div>
 
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', minWidth: '800px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', minWidth: '900px' }}>
           <thead>
             <tr style={{ background: '#3F51B5', color: 'white' }}>
               <th rowSpan="2" style={{ padding: '10px 5px', border: '1px solid #ddd', minWidth: '90px' }}>תאריך</th>
               {headerGroups.map(hg => (
-                <th key={hg.id} colSpan={hg.colSpan} style={{ padding: '8px', border: '1px solid #ddd' }}>
-                  {hg.name}
-                </th>
+                <th key={hg.id} colSpan={hg.colSpan} style={{ padding: '8px', border: '1px solid #ddd' }}>{hg.name}</th>
               ))}
-              <th rowSpan="2" style={{ padding: '10px 5px', border: '1px solid #ddd', background: '#F44336', minWidth: '100px' }}>לא נמצא</th>
+              <th rowSpan="2" style={{ padding: '10px 5px', border: '1px solid #ddd', background: '#FF9800', minWidth: '110px' }}>לא משובצים</th>
+              <th rowSpan="2" style={{ padding: '10px 5px', border: '1px solid #ddd', background: '#F44336', minWidth: '100px' }}>היעדרויות</th>
             </tr>
             <tr style={{ background: '#5C6BC0', color: 'white', fontSize: '13px' }}>
               {displayColumns.map(col => (
@@ -251,64 +260,83 @@ export default function ScheduleManager({ isAdmin }) {
           </thead>
 
           <tbody>
-            {currentWeekDays.map(day => (
-              <tr key={day}>
-                <td style={{ padding: '8px 5px', border: '1px solid #ddd', background: '#f9f9f9', fontWeight: 'bold', fontSize: '13px' }}>
-                  {new Date(day + 'T00:00:00').toLocaleDateString('he-IL', { weekday: 'short' })}<br/>
-                  <span style={{ fontSize: '11px', color: '#666' }}>{formatDateToIL(day)}</span>
-                  {holidays[day] && <div style={{ fontSize: '10px', color: 'darkblue' }}>{holidays[day]}</div>}
-                </td>
+            {currentWeekDays.map(day => {
+              const unscheduled = getUnscheduledForDay(day);
+              return (
+                <tr key={day}>
+                  <td style={{ padding: '8px 5px', border: '1px solid #ddd', background: '#f9f9f9', fontWeight: 'bold', fontSize: '13px' }}>
+                    {new Date(day + 'T00:00:00').toLocaleDateString('he-IL', { weekday: 'short' })}<br />
+                    <span style={{ fontSize: '11px', color: '#666' }}>{formatDateToIL(day)}</span>
+                    {holidays[day] && <div style={{ fontSize: '10px', color: 'darkblue' }}>{holidays[day]}</div>}
+                  </td>
 
-                {displayColumns.map(station => {
-                  const scheduledHere = schedules.filter(s => s.date === day && s.station_id === station.id);
+                  {displayColumns.map(station => {
+                    const scheduledHere = schedules.filter(s => s.date === day && s.station_id === station.id);
+                    return (
+                      <td
+                        key={station.id}
+                        style={{ padding: '5px', border: '1px solid #ddd', verticalAlign: 'top' }}
+                        onDragOver={handleDragOverCell}
+                        onDrop={(e) => handleDropOnStation(e, day, station.id)}
+                      >
+                        {scheduledHere.map(s => {
+                          const stage = getStageLabel(s.staff_id, day);
+                          return (
+                            <div key={s.id} style={{ background: '#E3F2FD', padding: '4px', borderRadius: '4px', marginBottom: '4px', fontSize: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px' }}>
+                              <span style={{ flexShrink: 1 }}>
+                                {getStaffName(s.staff_id)}
+                                {stage && <div style={{ fontSize: '10px', color: '#555' }}>({stage})</div>}
+                              </span>
+                              {isAdmin && (
+                                <button onClick={() => handleDeleteSchedule(s.id)} style={{ background: 'none', border: 'none', color: '#d32f2f', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px', padding: '0 3px' }} title="הסר שיבוץ">✕</button>
+                              )}
+                            </div>
+                          );
+                        })}
 
-                  return (
-                    <td key={station.id} style={{ padding: '5px', border: '1px solid #ddd', verticalAlign: 'top' }}>
-                      {scheduledHere.map(s => (
-                        <div key={s.id} style={{ background: '#E3F2FD', padding: '4px', borderRadius: '4px', marginBottom: '4px', fontSize: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px' }}>
-                          <span style={{ flexShrink: 1 }}>{getStaffName(s.staff_id)}</span>
-                          {isAdmin && (
-                            <button
-                              onClick={() => handleDeleteSchedule(s.id)}
-                              style={{ background: 'none', border: 'none', color: '#d32f2f', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px', padding: '0 3px' }}
-                              title="הסר שיבוץ"
-                            >
-                              ✕
-                            </button>
-                          )}
+                        {isAdmin && (
+                          <select
+                            onChange={(e) => { handleAddSchedule(day, station.id, e.target.value); e.target.value = ""; }}
+                            style={{ width: '100%', marginTop: '5px', padding: '4px', fontSize: '12px' }}
+                          >
+                            <option value="">+ שבץ רופא</option>
+                            {unscheduled.map(person => (<option key={person.id} value={person.id}>{person.first_name} {person.last_name}</option>))}
+                          </select>
+                        )}
+                      </td>
+                    );
+                  })}
+
+                  <td style={{ padding: '5px', border: '1px solid #ddd', verticalAlign: 'top', background: '#fff3e0' }}>
+                    {unscheduled.map(person => {
+                      const stage = getStageLabel(person.id, day);
+                      return (
+                        <div
+                          key={person.id}
+                          draggable={isAdmin}
+                          onDragStart={() => handleDragStart(person.id)}
+                          style={{ background: 'white', border: '1px solid #ffcc80', padding: '4px', borderRadius: '4px', marginBottom: '4px', fontSize: '12px', cursor: isAdmin ? 'grab' : 'default' }}
+                        >
+                          {person.first_name} {person.last_name}
+                          {stage && <div style={{ fontSize: '10px', color: '#555' }}>({stage})</div>}
+                        </div>
+                      );
+                    })}
+                  </td>
+
+                  <td style={{ padding: '5px', border: '1px solid #ddd', verticalAlign: 'top', background: '#ffebee' }}>
+                    {absences
+                      .filter(a => a.start_date <= day && a.end_date >= day)
+                      .map(absence => (
+                        <div key={absence.id} style={{ background: 'white', border: '1px solid #ffcdd2', padding: '4px', borderRadius: '4px', marginBottom: '4px', fontSize: '12px', textAlign: 'right' }}>
+                          <strong>{getStaffName(absence.staff_id)}</strong><br />
+                          <span style={{ fontSize: '11px', color: '#c62828' }}>{absence.status_type}</span>
                         </div>
                       ))}
-
-                      {isAdmin && (
-                        <select
-                          onChange={(e) => {
-                            handleAddSchedule(day, station.id, e.target.value);
-                            e.target.value = "";
-                          }}
-                          style={{ width: '100%', marginTop: '5px', padding: '4px', fontSize: '12px' }}
-                        >
-                          <option value="">+ שבץ רופא</option>
-                          {staff.map(person => (
-                            <option key={person.id} value={person.id}>{person.first_name} {person.last_name}</option>
-                          ))}
-                        </select>
-                      )}
-                    </td>
-                  );
-                })}
-
-                <td style={{ padding: '5px', border: '1px solid #ddd', verticalAlign: 'top', background: '#ffebee' }}>
-                  {absences
-                    .filter(a => a.start_date <= day && a.end_date >= day)
-                    .map(absence => (
-                      <div key={absence.id} style={{ background: 'white', border: '1px solid #ffcdd2', padding: '4px', borderRadius: '4px', marginBottom: '4px', fontSize: '12px', textAlign: 'right' }}>
-                        <strong>{getStaffName(absence.staff_id)}</strong><br/>
-                        <span style={{ fontSize: '11px', color: '#c62828' }}>{absence.status_type}</span>
-                      </div>
-                  ))}
-                </td>
-              </tr>
-            ))}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -320,25 +348,11 @@ export default function ScheduleManager({ isAdmin }) {
           @page { size: landscape; }
         }
         @media (max-width: 768px) {
-          #controls-panel, #action-buttons {
-            flex-direction: column;
-            align-items: stretch;
-          }
-          #controls-panel form {
-            flex-direction: column;
-            align-items: stretch;
-            width: 100%;
-          }
-          h3 {
-            font-size: 1em;
-          }
-          th, td {
-            padding: 5px !important;
-            font-size: 12px !important;
-          }
-          span, strong {
-            font-size: 11px !important;
-          }
+          #controls-panel, #action-buttons { flex-direction: column; align-items: stretch; }
+          #controls-panel form { flex-direction: column; align-items: stretch; width: 100%; }
+          h3 { font-size: 1em; }
+          th, td { padding: 5px !important; font-size: 12px !important; }
+          span, strong { font-size: 11px !important; }
         }
       `}</style>
     </div>
