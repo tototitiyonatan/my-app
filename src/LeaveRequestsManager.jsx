@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from './api';
+import api from './api';
 
 export default function LeaveRequestsManager({ user }) {
   const [requests, setRequests] = useState([]);
