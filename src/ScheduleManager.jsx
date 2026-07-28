@@ -6,6 +6,7 @@ export default function ScheduleManager({ isAdmin }) {
   const [staff, setStaff] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [absences, setAbsences] = useState([]);
+  const [holidays, setHolidays] = useState({});
 
   const [newStationName, setNewStationName] = useState('');
   const [parentStationId, setParentStationId] = useState('');
@@ -42,7 +43,47 @@ export default function ScheduleManager({ isAdmin }) {
 
   useEffect(() => {
     fetchData();
+    fetchHolidays(currentWeekDays);
   }, [weekOffset]);
+
+  const fetchHolidays = async (days) => {
+    const year = new Date(days[0]).getFullYear();
+    const month = new Date(days[0]).getMonth() + 1;
+    const newHolidays = {};
+
+    // Fetch Hebrew holidays
+    try {
+      const response = await fetch(`https://www.hebcal.com/converter?cfg=json&gy=${year}&gm=${month}&gd=1&g2h=1`);
+      const data = await response.json();
+      if (data.events) {
+        data.events.forEach(event => {
+          const eventDate = new Date(event.date).toISOString().split('T')[0];
+          if (days.includes(eventDate)) {
+            newHolidays[eventDate] = event.title;
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching Hebrew holidays:', error);
+    }
+
+    // Fetch Islamic holidays
+    for (const day of days) {
+        try {
+            const [y, m, d] = day.split('-');
+            const response = await fetch(`https://api.aladhan.com/v1/gToH?date=${d}-${m}-${y}`);
+            const data = await response.json();
+            if (data.data.hijri.holidays.length > 0) {
+                const holidayName = data.data.hijri.holidays[0];
+                newHolidays[day] = newHolidays[day] ? `${newHolidays[day]}, ${holidayName}` : holidayName;
+            }
+        } catch (error) {
+            console.error('Error fetching Islamic holidays:', error);
+        }
+    }
+
+    setHolidays(newHolidays);
+  };
 
   const fetchData = async () => {
     try {
@@ -199,6 +240,7 @@ export default function ScheduleManager({ isAdmin }) {
                 <td style={{ padding: '8px 5px', border: '1px solid #ddd', background: '#f9f9f9', fontWeight: 'bold', fontSize: '13px' }}>
                   {new Date(day + 'T00:00:00').toLocaleDateString('he-IL', { weekday: 'short' })}<br/>
                   <span style={{ fontSize: '11px', color: '#666' }}>{formatDateToIL(day)}</span>
+                  {holidays[day] && <div style={{ fontSize: '10px', color: 'darkblue' }}>{holidays[day]}</div>}
                 </td>
 
                 {displayColumns.map(station => {

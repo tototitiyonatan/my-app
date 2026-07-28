@@ -6,10 +6,15 @@ export default function MonthlyView() {
   const [staff, setStaff] = useState([]);
   const [stations, setStations] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [holidays, setHolidays] = useState({});
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    fetchHolidays();
+  }, [currentDate]);
 
   const fetchData = async () => {
     try {
@@ -24,6 +29,45 @@ export default function MonthlyView() {
     } catch (error) {
       console.error('שגיאה בשליפת נתונים:', error);
     }
+  };
+
+  const fetchHolidays = async () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth() + 1;
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const newHolidays = {};
+
+    // Fetch Hebrew holidays
+    try {
+      const response = await fetch(`https://www.hebcal.com/converter?cfg=json&gy=${year}&gm=${month}&gd=1&g2h=1`);
+      const data = await response.json();
+      if (data.events) {
+        data.events.forEach(event => {
+          const eventDate = new Date(event.date);
+          if (eventDate.getMonth() + 1 === month) {
+            newHolidays[eventDate.getDate()] = event.title;
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching Hebrew holidays:', error);
+    }
+
+    // Fetch Islamic holidays
+    for (let day = 1; day <= daysInMonth; day++) {
+        try {
+            const response = await fetch(`https://api.aladhan.com/v1/gToH?date=${day}-${month}-${year}`);
+            const data = await response.json();
+            if (data.data.hijri.holidays.length > 0) {
+                const holidayName = data.data.hijri.holidays[0];
+                newHolidays[day] = newHolidays[day] ? `${newHolidays[day]}, ${holidayName}` : holidayName;
+            }
+        } catch (error) {
+            console.error('Error fetching Islamic holidays:', error);
+        }
+    }
+
+    setHolidays(newHolidays);
   };
 
   const handleMonthChange = (offset) => {
@@ -52,7 +96,10 @@ export default function MonthlyView() {
             <tr>
               <th style={{ padding: '8px', border: '1px solid #ddd' }}>מתמחה</th>
               {monthDays.map(day => (
-                <th key={day} style={{ padding: '8px', border: '1px solid #ddd' }}>{day}</th>
+                <th key={day} style={{ padding: '8px', border: '1px solid #ddd' }}>
+                  {day}
+                  {holidays[day] && <div style={{ fontSize: '10px', color: 'darkblue', whiteSpace: 'nowrap' }}>{holidays[day]}</div>}
+                </th>
               ))}
             </tr>
           </thead>
