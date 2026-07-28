@@ -18,7 +18,7 @@ export default function StaffManager() {
   // פונקציה לשליפת הנתונים מהשרת (FastAPI)
   const fetchStaff = async () => {
     try {
-      const response = await axios.get('http://127.0.0.1:8000/staff/');
+      const response = await api.get('/staff/');
       setStaffList(response.data);
     } catch (error) {
       console.error('שגיאה בשליפת נתונים:', error);
@@ -42,7 +42,7 @@ export default function StaffManager() {
   const handleSubmit = async (e) => {
     e.preventDefault(); // מונע מהדף להתרענן
     try {
-      await axios.post('http://127.0.0.1:8000/staff/', formData);
+      await api.post('/staff/', formData);
       alert('איש צוות נוסף בהצלחה!');
       fetchStaff(); // רענון הטבלה כדי לראות את איש הצוות החדש
 

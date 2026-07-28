@@ -47,10 +47,10 @@ export default function ScheduleManager({ isAdmin }) {
   const fetchData = async () => {
     try {
       const [stationsRes, staffRes, schedRes, absRes] = await Promise.all([
-        axios.get('http://127.0.0.1:8000/stations/'),
-        axios.get('http://127.0.0.1:8000/staff/'),
-        axios.get('http://127.0.0.1:8000/schedules/'),
-        axios.get('http://127.0.0.1:8000/absences/')
+        axios.get('/stations/'),
+        axios.get('/staff/'),
+        axios.get('/schedules/'),
+        axios.get('/absences/')
       ]);
       setStations(stationsRes.data);
       setStaff(staffRes.data);
@@ -65,7 +65,7 @@ export default function ScheduleManager({ isAdmin }) {
     e.preventDefault();
     if (!newStationName) return;
     try {
-      await axios.post('http://127.0.0.1:8000/stations/', {
+      await axios.post('/stations/', {
         name: newStationName,
         parent_station_id: parentStationId ? parseInt(parentStationId) : null
       });
@@ -80,7 +80,7 @@ export default function ScheduleManager({ isAdmin }) {
   const handleAddSchedule = async (date, stationId, staffId) => {
     if (!staffId) return;
     try {
-      await axios.post('http://127.0.0.1:8000/schedules/', {
+      await axios.post('/schedules/', {
         staff_id: staffId, date: date, station_id: stationId
       });
       fetchData();
@@ -92,7 +92,7 @@ export default function ScheduleManager({ isAdmin }) {
   // פונקציית מחיקת שיבוץ מתחנה
   const handleDeleteSchedule = async (scheduleId) => {
     try {
-      await axios.delete(`http://127.0.0.1:8000/schedules/${scheduleId}`);
+      await axios.delete(`/schedules/${scheduleId}`);
       fetchData(); // רענון הטבלה
     } catch (error) {
       alert('שגיאה במחיקת השיבוץ');
@@ -107,7 +107,7 @@ export default function ScheduleManager({ isAdmin }) {
   const exportToExcel = () => {
     const startDate = currentWeekDays[0];
     const endDate = currentWeekDays[6];
-    window.location.href = `http://127.0.0.1:8000/schedules/export/excel?start_date=${startDate}&end_date=${endDate}`;
+    window.location.href = `/schedules/export/excel?start_date=${startDate}&end_date=${endDate}`;
   };
 
   const mainStations = stations.filter(s => s.parent_station_id === null);

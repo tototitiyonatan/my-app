@@ -22,8 +22,8 @@ export default function LeaveRequestsManager({ user }) {
     try {
       // שליפת גם הבקשות וגם רשימת אנשי הצוות במקביל
       const [reqRes, staffRes] = await Promise.all([
-        axios.get('http://127.0.0.1:8000/leave-requests/'),
-        axios.get('http://127.0.0.1:8000/staff/')
+        axios.get('/leave-requests/'),
+        axios.get('/staff/')
       ]);
 
       setStaffList(staffRes.data);
@@ -54,7 +54,7 @@ export default function LeaveRequestsManager({ user }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://127.0.0.1:8000/leave-requests/', formData);
+      await axios.post('/leave-requests/', formData);
       alert('הבקשה הוגשה בהצלחה למנהל!');
       fetchData();
       setFormData(prev => ({
@@ -70,7 +70,7 @@ export default function LeaveRequestsManager({ user }) {
 
   const handleAction = async (id, action) => {
     try {
-      await axios.put(`http://127.0.0.1:8000/leave-requests/${id}?action=${action}`);
+      await axios.put(`/leave-requests/${id}?action=${action}`);
       alert('הסטטוס עודכן, ואם אושר - הוכנס אוטומטית ליומן ההיעדרויות!');
       fetchData();
     } catch (err) {

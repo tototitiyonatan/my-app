@@ -11,7 +11,7 @@ export default function Login({ onLogin }) {
   useEffect(() => {
     const fetchStaff = async () => {
       try {
-        const response = await axios.get('http://127.0.0.1:8000/staff/');
+        const response = await axios.get('/staff/');
         setStaffList(response.data);
       } catch (err) {
         console.error('שגיאה בטעינת נתונים', err);
