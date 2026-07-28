@@ -46,7 +46,7 @@ function App() {
           📊 דאשבורד
         </button>
         <button style={buttonStyle('schedule')} onClick={() => setActiveTab('schedule')}>
-          📅 סידור עבודה שבועי
+          📅 סידור עבודה יומי
         </button>
         <button style={buttonStyle('monthly')} onClick={() => setActiveTab('monthly')}>
           🗓️ תצוגה חודשית
