@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from './api';
 import { StaffName } from './staffDisplay';
-import { TRAINING_OPTIONS } from './staffTraining';
+import { TRAINING_OPTIONS, mergeStaffWithTraining, setTraining } from './staffTraining';
 import InternProgramSingle from './InternProgramSingle';
 
 export default function StaffManager() {
@@ -24,7 +24,7 @@ export default function StaffManager() {
   const fetchStaff = async () => {
     try {
       const response = await api.get('/staff/');
-      setStaffList(response.data);
+      setStaffList(mergeStaffWithTraining(response.data));
     } catch (error) {
       console.error('שגיאה בשליפת נתונים:', error);
     }
@@ -61,6 +61,9 @@ export default function StaffManager() {
     e.preventDefault();
     try {
       await api.post('/staff/', buildStaffPayload(formData));
+      if (formData.role === 'מתמחה') {
+        setTraining(formData.id, formData.training || '');
+      }
       alert('איש צוות נוסף בהצלחה!');
       fetchStaff();
       setFormData({ id: '', first_name: '', last_name: '', role: 'מתמחה', phone: '', email: '', training: '' });
@@ -74,6 +77,11 @@ export default function StaffManager() {
     const { id, ...updateFields } = buildStaffPayload(editFormData);
     try {
       await api.put(`/staff/${editingId}`, updateFields);
+      if (editFormData.role === 'מתמחה') {
+        setTraining(editingId, editFormData.training || '');
+      } else {
+        setTraining(editingId, '');
+      }
       alert('פרטי איש צוות עודכנו בהצלחה!');
       setEditingId(null);
       fetchStaff();
@@ -86,6 +94,7 @@ export default function StaffManager() {
     if (!window.confirm('האם אתה בטוח שברצונך למחוק איש צוות זה?')) return;
     try {
       await api.delete(`/staff/${id}`);
+      setTraining(id, '');
       alert('איש צוות נמחק בהצלחה');
       fetchStaff();
     } catch (error) {
@@ -112,16 +121,12 @@ export default function StaffManager() {
     });
   };
 
-  const handleTrainingChange = async (staffId, value) => {
-    try {
-      await api.put(`/staff/${staffId}`, { training: value || null });
-      setStaffList((prev) =>
-        prev.map((s) => (s.id === staffId ? { ...s, training: value || null } : s))
-      );
-    } catch (error) {
-      alert('שגיאה בעדכון הכשרה: ' + (error.response?.data?.detail || error.message));
-      fetchStaff();
-    }
+  const handleTrainingChange = (staffId, value) => {
+    setTraining(staffId, value);
+    setStaffList((prev) =>
+      prev.map((s) => (s.id === staffId ? { ...s, training: value || '' } : s))
+    );
+    api.put(`/staff/${staffId}`, { training: value || null }).catch(() => {});
   };
 
   const handleFileChange = (event) => {
