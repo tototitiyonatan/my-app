@@ -709,6 +709,36 @@ p {
   margin-bottom: 0.25rem;
   font-size: 0.75rem;
   cursor: grab;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+}
+
+.unscheduled-chip.selected {
+  border: 2px solid var(--primary);
+  background: var(--primary-light);
+  box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.2);
+}
+
+.station-drop-target {
+  background: rgba(21, 101, 192, 0.08) !important;
+  outline: 2px dashed var(--primary);
+  cursor: pointer;
+}
+
+.selection-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: var(--primary-light);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  color: var(--text-heading);
 }
 
 .absence-chip {

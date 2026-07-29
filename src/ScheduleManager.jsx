@@ -13,7 +13,7 @@ export default function ScheduleManager({ isAdmin }) {
   const [newStationName, setNewStationName] = useState('');
   const [parentStationId, setParentStationId] = useState('');
   const [dayOffset, setDayOffset] = useState(0);
-  const [draggedStaffId, setDraggedStaffId] = useState(null);
+  const [selectedStaffId, setSelectedStaffId] = useState(null);
   const [stageUploadMsg, setStageUploadMsg] = useState('');
   const [autoScheduling, setAutoScheduling] = useState(false);
 
@@ -252,15 +252,31 @@ export default function ScheduleManager({ isAdmin }) {
     }
   });
 
-  const handleDragStart = (staffId) => setDraggedStaffId(staffId);
+  const handleSelectStaff = (staffId, e) => {
+    e?.stopPropagation?.();
+    setSelectedStaffId((prev) => (prev === staffId ? null : staffId));
+  };
+
+  const handleAssignToStation = (stationId, e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    if (!isAdmin || !selectedStaffId) return;
+    handleAddSchedule(currentDay, stationId, selectedStaffId);
+    setSelectedStaffId(null);
+  };
+
+  const handleDragStart = (staffId) => setSelectedStaffId(staffId);
   const handleDragOverCell = (e) => e.preventDefault();
   const handleDropOnStation = (e, day, stationId) => {
     e.preventDefault();
-    if (draggedStaffId) {
-      handleAddSchedule(day, stationId, draggedStaffId);
-      setDraggedStaffId(null);
+    if (selectedStaffId) {
+      handleAddSchedule(day, stationId, selectedStaffId);
+      setSelectedStaffId(null);
     }
   };
+
+  const isTouchDevice = typeof window !== 'undefined'
+    && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
 
   const unscheduledForDay = getUnscheduledForDay(currentDay);
 
@@ -318,6 +334,17 @@ export default function ScheduleManager({ isAdmin }) {
         <button className="btn btn-outline btn-sm" onClick={() => setDayOffset(prev => prev + 1)}>יום הבא ⬅️</button>
       </div>
 
+      {isAdmin && selectedStaffId && (
+        <div className="selection-banner no-print">
+          <span>
+            נבחר: <strong>{getStaffName(selectedStaffId)}</strong> — לחץ על תחנה לשיבוץ
+          </span>
+          <button type="button" className="btn btn-outline btn-sm" onClick={() => setSelectedStaffId(null)}>
+            ביטול
+          </button>
+        </div>
+      )}
+
       <div className="table-wrapper">
         <table className="schedule-table">
           <thead>
@@ -345,8 +372,10 @@ export default function ScheduleManager({ isAdmin }) {
                 return (
                   <td
                     key={station.id}
+                    className={isAdmin && selectedStaffId ? 'station-drop-target' : undefined}
                     onDragOver={handleDragOverCell}
                     onDrop={(e) => handleDropOnStation(e, currentDay, station.id)}
+                    onClick={isAdmin && selectedStaffId ? (e) => handleAssignToStation(station.id, e) : undefined}
                   >
                     {scheduledHere.map(s => {
                       const stage = getStageLabel(s.staff_id, currentDay);
@@ -366,6 +395,7 @@ export default function ScheduleManager({ isAdmin }) {
                     {isAdmin && (
                       <select
                         className="form-select"
+                        onClick={(e) => e.stopPropagation()}
                         onChange={(e) => { handleAddSchedule(currentDay, station.id, e.target.value); e.target.value = ""; }}
                         style={{ width: '100%', marginTop: '4px', padding: '2px', fontSize: '0.7rem' }}
                       >
@@ -383,10 +413,12 @@ export default function ScheduleManager({ isAdmin }) {
                 {unscheduledForDay.specialists.map(person => (
                   <div
                     key={person.id}
-                    draggable={isAdmin}
+                    draggable={isAdmin && !isTouchDevice}
                     onDragStart={() => handleDragStart(person.id)}
-                    className="unscheduled-chip"
-                    style={{ cursor: isAdmin ? 'grab' : 'default' }}
+                    onClick={isAdmin ? (e) => handleSelectStaff(person.id, e) : undefined}
+                    className={`unscheduled-chip${selectedStaffId === person.id ? ' selected' : ''}`}
+                    style={{ cursor: isAdmin ? 'pointer' : 'default' }}
+                    role={isAdmin ? 'button' : undefined}
                   >
                     {person.last_name}
                   </div>
@@ -399,10 +431,12 @@ export default function ScheduleManager({ isAdmin }) {
                   return (
                     <div
                       key={person.id}
-                      draggable={isAdmin}
+                      draggable={isAdmin && !isTouchDevice}
                       onDragStart={() => handleDragStart(person.id)}
-                      className="unscheduled-chip"
-                      style={{ cursor: isAdmin ? 'grab' : 'default' }}
+                      onClick={isAdmin ? (e) => handleSelectStaff(person.id, e) : undefined}
+                      className={`unscheduled-chip${selectedStaffId === person.id ? ' selected' : ''}`}
+                      style={{ cursor: isAdmin ? 'pointer' : 'default' }}
+                      role={isAdmin ? 'button' : undefined}
                     >
                       {person.last_name}
                       {stage && <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>({stage})</div>}
