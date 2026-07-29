@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from './api';
+import { resolveStageToStationId, getStationLabel, isNonStationStage } from './stageToStation';
 
 export default function ScheduleManager({ isAdmin }) {
   const [stations, setStations] = useState([]);
@@ -14,6 +15,7 @@ export default function ScheduleManager({ isAdmin }) {
   const [dayOffset, setDayOffset] = useState(0);
   const [draggedStaffId, setDraggedStaffId] = useState(null);
   const [stageUploadMsg, setStageUploadMsg] = useState('');
+  const [autoScheduling, setAutoScheduling] = useState(false);
 
   const formatDateToIL = (dateString) => {
     if (!dateString) return '';
@@ -167,6 +169,74 @@ export default function ScheduleManager({ isAdmin }) {
     window.location.href = `/schedules/export/excel?start_date=${currentDay}&end_date=${currentDay}`;
   };
 
+  const handleAutoScheduleInterns = async () => {
+    const interns = getUnscheduledForDay(currentDay).interns;
+    if (interns.length === 0) {
+      alert('אין מתמחים לא משובצים ליום זה.');
+      return;
+    }
+
+    const preview = interns.map((person) => {
+      const stage = getStageLabel(person.id, currentDay);
+      const stationId = stage ? resolveStageToStationId(stage, stations) : null;
+      return {
+        name: `${person.first_name} ${person.last_name}`,
+        stage,
+        stationId,
+        stationLabel: stationId ? getStationLabel(stationId, stations) : null,
+      };
+    });
+
+    const schedulable = preview.filter((p) => p.stationId);
+    const noStage = preview.filter((p) => !p.stage);
+    const nonStation = preview.filter((p) => p.stage && isNonStationStage(p.stage));
+    const unmatched = preview.filter((p) => p.stage && !isNonStationStage(p.stage) && !p.stationId);
+
+    if (schedulable.length === 0) {
+      let msg = 'לא ניתן לבצע שיבוץ אוטומטי.\n';
+      if (noStage.length) msg += `\nללא שלב מוגדר: ${noStage.map((p) => p.name).join(', ')}`;
+      if (nonStation.length) msg += `\nשלבים שאינם תחנה (חופש/מחלה וכו'): ${nonStation.map((p) => `${p.name} (${p.stage})`).join(', ')}`;
+      if (unmatched.length) msg += `\nלא נמצאה תחנה מתאימה: ${unmatched.map((p) => `${p.name} (${p.stage})`).join(', ')}`;
+      alert(msg);
+      return;
+    }
+
+    const summaryLines = schedulable.map((p) => `• ${p.name} → ${p.stationLabel} (${p.stage})`);
+    let confirmMsg = `שיבוץ אוטומטי ל-${schedulable.length} מתמחים:\n\n${summaryLines.join('\n')}`;
+    if (noStage.length || nonStation.length || unmatched.length) {
+      confirmMsg += '\n\nלא ישובצו:';
+      if (noStage.length) confirmMsg += `\n• ללא שלב: ${noStage.map((p) => p.name).join(', ')}`;
+      if (nonStation.length) confirmMsg += `\n• חופש/היעדרות: ${nonStation.map((p) => `${p.name} (${p.stage})`).join(', ')}`;
+      if (unmatched.length) confirmMsg += `\n• תחנה לא נמצאה: ${unmatched.map((p) => `${p.name} (${p.stage})`).join(', ')}`;
+    }
+    if (!window.confirm(confirmMsg)) return;
+
+    setAutoScheduling(true);
+    let success = 0;
+    const errors = [];
+
+    for (const person of schedulable) {
+      const intern = interns.find((i) => `${i.first_name} ${i.last_name}` === person.name);
+      try {
+        await api.post('/schedules/', {
+          staff_id: intern.id,
+          date: currentDay,
+          station_id: person.stationId,
+        });
+        success++;
+      } catch (error) {
+        errors.push(`${person.name}: ${error.response?.data?.detail || error.message}`);
+      }
+    }
+
+    await fetchData();
+    setAutoScheduling(false);
+
+    let resultMsg = `שובצו ${success} מתמחים בהצלחה.`;
+    if (errors.length) resultMsg += `\n\nשגיאות:\n${errors.join('\n')}`;
+    alert(resultMsg);
+  };
+
   const mainStations = stations.filter(s => s.parent_station_id === null);
   const headerGroups = [];
   const displayColumns = [];
@@ -225,6 +295,15 @@ export default function ScheduleManager({ isAdmin }) {
         )}
 
         <div className="action-row">
+          {isAdmin && (
+            <button
+              onClick={handleAutoScheduleInterns}
+              className="btn btn-primary btn-sm"
+              disabled={autoScheduling}
+            >
+              {autoScheduling ? '⏳ משבץ...' : '🤖 שיבוץ אוטומטי למתמחים'}
+            </button>
+          )}
           <button onClick={exportToExcel} className="btn btn-success btn-sm">📊 ייצוא לאקסל</button>
           <button onClick={() => window.print()} className="btn btn-outline btn-sm">🖨️ הדפס PDF</button>
         </div>
