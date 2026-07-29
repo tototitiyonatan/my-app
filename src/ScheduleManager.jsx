@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from './api';
 import { resolveStageToStationId, getStationLabel, isNonStationStage } from './stageToStation';
+import useIsMobile from './useIsMobile';
 
 export default function ScheduleManager({ isAdmin }) {
   const [stations, setStations] = useState([]);
@@ -16,6 +17,7 @@ export default function ScheduleManager({ isAdmin }) {
   const [selectedStaffId, setSelectedStaffId] = useState(null);
   const [stageUploadMsg, setStageUploadMsg] = useState('');
   const [autoScheduling, setAutoScheduling] = useState(false);
+  const isMobile = useIsMobile();
 
   const formatDateToIL = (dateString) => {
     if (!dateString) return '';
@@ -137,9 +139,23 @@ export default function ScheduleManager({ isAdmin }) {
     }
   };
 
+  const getStationDisplayName = (station) => {
+    if (station.parent_station_id) {
+      const parent = stations.find((s) => s.id === station.parent_station_id);
+      return parent ? `${parent.name} ${station.name}` : station.name;
+    }
+    return station.name;
+  };
+
   const getStaffName = (id) => {
     const person = staff.find(s => s.id === id);
     return person ? person.last_name : id;
+  };
+
+  const assignToStation = (stationId) => {
+    if (!isAdmin || !selectedStaffId) return;
+    handleAddSchedule(currentDay, stationId, selectedStaffId);
+    setSelectedStaffId(null);
   };
 
   const getStageLabel = (staffId, dateStr) => {
@@ -260,9 +276,7 @@ export default function ScheduleManager({ isAdmin }) {
   const handleAssignToStation = (stationId, e) => {
     e?.preventDefault?.();
     e?.stopPropagation?.();
-    if (!isAdmin || !selectedStaffId) return;
-    handleAddSchedule(currentDay, stationId, selectedStaffId);
-    setSelectedStaffId(null);
+    assignToStation(stationId);
   };
 
   const handleDragStart = (staffId) => setSelectedStaffId(staffId);
@@ -275,8 +289,20 @@ export default function ScheduleManager({ isAdmin }) {
     }
   };
 
-  const isTouchDevice = typeof window !== 'undefined'
-    && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  const renderUnscheduledChip = (person, stage = null) => (
+    <button
+      type="button"
+      key={person.id}
+      draggable={isAdmin && !isMobile}
+      onDragStart={() => handleDragStart(person.id)}
+      onClick={isAdmin ? (e) => handleSelectStaff(person.id, e) : undefined}
+      className={`unscheduled-chip${selectedStaffId === person.id ? ' selected' : ''}`}
+      disabled={!isAdmin}
+    >
+      {person.last_name}
+      {stage && <span className="unscheduled-chip-stage">({stage})</span>}
+    </button>
+  );
 
   const unscheduledForDay = getUnscheduledForDay(currentDay);
 
@@ -337,7 +363,8 @@ export default function ScheduleManager({ isAdmin }) {
       {isAdmin && selectedStaffId && (
         <div className="selection-banner no-print">
           <span>
-            נבחר: <strong>{getStaffName(selectedStaffId)}</strong> — לחץ על תחנה לשיבוץ
+            נבחר: <strong>{getStaffName(selectedStaffId)}</strong>
+            {isMobile ? ' — בחר תחנה מהרשימה למטה' : ' — לחץ על תחנה לשיבוץ'}
           </span>
           <button type="button" className="btn btn-outline btn-sm" onClick={() => setSelectedStaffId(null)}>
             ביטול
@@ -345,15 +372,63 @@ export default function ScheduleManager({ isAdmin }) {
         </div>
       )}
 
-      <div className="table-wrapper">
+      {isAdmin && isMobile && (
+        <div className="mobile-schedule-panel no-print">
+          <p className="mobile-hint">לחץ על שם לבחירה, ואז בחר תחנה</p>
+
+          <div className="mobile-unscheduled-group">
+            <h4>מומחים לא משובצים ({unscheduledForDay.specialists.length})</h4>
+            <div className="mobile-chip-list">
+              {unscheduledForDay.specialists.length === 0 ? (
+                <span className="mobile-empty">אין</span>
+              ) : (
+                unscheduledForDay.specialists.map((person) => renderUnscheduledChip(person))
+              )}
+            </div>
+          </div>
+
+          <div className="mobile-unscheduled-group">
+            <h4>מתמחים לא משובצים ({unscheduledForDay.interns.length})</h4>
+            <div className="mobile-chip-list">
+              {unscheduledForDay.interns.length === 0 ? (
+                <span className="mobile-empty">אין</span>
+              ) : (
+                unscheduledForDay.interns.map((person) =>
+                  renderUnscheduledChip(person, getStageLabel(person.id, currentDay))
+                )
+              )}
+            </div>
+          </div>
+
+          {selectedStaffId && (
+            <div className="mobile-station-picker">
+              <h4>שבץ את {getStaffName(selectedStaffId)} ל:</h4>
+              <div className="station-picker-grid">
+                {displayColumns.map((station) => (
+                  <button
+                    key={station.id}
+                    type="button"
+                    className="station-picker-btn"
+                    onClick={() => assignToStation(station.id)}
+                  >
+                    {getStationDisplayName(station)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className={`table-wrapper${isMobile ? ' mobile-schedule-table' : ''}${isAdmin && isMobile ? ' has-mobile-panel' : ''}`}>
         <table className="schedule-table">
           <thead>
             <tr>
               {headerGroups.map(hg => (
                 <th key={hg.id} colSpan={hg.colSpan} className="header-main">{hg.name}</th>
               ))}
-              <th className="header-unscheduled" style={{ minWidth: '110px' }}>לא משובצים - מומחים</th>
-              <th className="header-unscheduled" style={{ minWidth: '110px' }}>לא משובצים - מתמחים</th>
+              <th className="header-unscheduled mobile-hide-col" style={{ minWidth: '110px' }}>לא משובצים - מומחים</th>
+              <th className="header-unscheduled mobile-hide-col" style={{ minWidth: '110px' }}>לא משובצים - מתמחים</th>
               <th className="header-absences" style={{ minWidth: '100px' }}>היעדרויות</th>
             </tr>
             <tr>
@@ -386,7 +461,7 @@ export default function ScheduleManager({ isAdmin }) {
                             {stage && <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>({stage})</div>}
                           </span>
                           {isAdmin && (
-                            <button className="schedule-chip-remove" onClick={() => handleDeleteSchedule(s.id)} title="הסר שיבוץ">✕</button>
+                            <button type="button" className="schedule-chip-remove" onClick={(e) => { e.stopPropagation(); handleDeleteSchedule(s.id); }} title="הסר שיבוץ">✕</button>
                           )}
                         </div>
                       );
@@ -409,40 +484,14 @@ export default function ScheduleManager({ isAdmin }) {
                 );
               })}
 
-              <td className="cell-unscheduled">
-                {unscheduledForDay.specialists.map(person => (
-                  <div
-                    key={person.id}
-                    draggable={isAdmin && !isTouchDevice}
-                    onDragStart={() => handleDragStart(person.id)}
-                    onClick={isAdmin ? (e) => handleSelectStaff(person.id, e) : undefined}
-                    className={`unscheduled-chip${selectedStaffId === person.id ? ' selected' : ''}`}
-                    style={{ cursor: isAdmin ? 'pointer' : 'default' }}
-                    role={isAdmin ? 'button' : undefined}
-                  >
-                    {person.last_name}
-                  </div>
-                ))}
+              <td className="cell-unscheduled mobile-hide-col">
+                {unscheduledForDay.specialists.map((person) => renderUnscheduledChip(person))}
               </td>
 
-              <td className="cell-unscheduled">
-                {unscheduledForDay.interns.map(person => {
-                  const stage = getStageLabel(person.id, currentDay);
-                  return (
-                    <div
-                      key={person.id}
-                      draggable={isAdmin && !isTouchDevice}
-                      onDragStart={() => handleDragStart(person.id)}
-                      onClick={isAdmin ? (e) => handleSelectStaff(person.id, e) : undefined}
-                      className={`unscheduled-chip${selectedStaffId === person.id ? ' selected' : ''}`}
-                      style={{ cursor: isAdmin ? 'pointer' : 'default' }}
-                      role={isAdmin ? 'button' : undefined}
-                    >
-                      {person.last_name}
-                      {stage && <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>({stage})</div>}
-                    </div>
-                  );
-                })}
+              <td className="cell-unscheduled mobile-hide-col">
+                {unscheduledForDay.interns.map((person) =>
+                  renderUnscheduledChip(person, getStageLabel(person.id, currentDay))
+                )}
               </td>
 
               <td className="cell-absences">
