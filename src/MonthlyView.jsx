@@ -89,15 +89,17 @@ export default function MonthlyView() {
     const monthDays = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
     return (
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center' }}>
+      <div className="table-wrapper">
+        <table className="data-table" style={{ textAlign: 'center' }}>
           <thead>
             <tr>
-              <th style={{ padding: '8px', border: '1px solid #ddd' }}>מתמחה</th>
+              <th style={{ position: 'sticky', right: 0, background: '#f8fafc', zIndex: 1 }}>מתמחה</th>
               {monthDays.map(day => (
-                <th key={day} style={{ padding: '8px', border: '1px solid #ddd' }}>
+                <th key={day} style={{ minWidth: '40px' }}>
                   {day}
-                  {holidays[day] && <div style={{ fontSize: '10px', color: 'darkblue', whiteSpace: 'nowrap' }}>{holidays[day]}</div>}
+                  {holidays[day] && (
+                    <div className="date-nav-holiday" style={{ whiteSpace: 'nowrap' }}>{holidays[day]}</div>
+                  )}
                 </th>
               ))}
             </tr>
@@ -111,9 +113,9 @@ export default function MonthlyView() {
 
               return (
                 <tr key={intern.id}>
-                  <td style={{ padding: '8px', border: '1px solid #ddd', whiteSpace: 'nowrap' }}>
-                    {intern.first_name} {intern.last_name}
-                    {stage && <div style={{ fontSize: '11px', color: '#555' }}>({stage})</div>}
+                  <td style={{ whiteSpace: 'nowrap', position: 'sticky', right: 0, background: 'white', zIndex: 1 }}>
+                    <strong>{intern.first_name} {intern.last_name}</strong>
+                    {stage && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({stage})</div>}
                   </td>
                   {monthDays.map(day => {
                     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -125,9 +127,11 @@ export default function MonthlyView() {
                     } else { consecutiveCount = 0; lastStationId = null; }
 
                     return (
-                      <td key={day} style={{ padding: '8px', border: '1px solid #ddd', background: schedule ? '#e3f2fd' : 'transparent' }}>
+                      <td key={day} style={{ background: schedule ? 'var(--primary-light)' : 'transparent', fontSize: '0.75rem' }}>
                         {schedule ? getStationName(schedule.station_id) : ''}
-                        {consecutiveCount > 1 && (<span style={{ color: 'red', marginLeft: '4px' }}>({consecutiveCount})</span>)}
+                        {consecutiveCount > 1 && (
+                          <span style={{ color: 'var(--danger)', marginRight: '2px' }}>({consecutiveCount})</span>
+                        )}
                       </td>
                     );
                   })}
@@ -141,13 +145,17 @@ export default function MonthlyView() {
   };
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h2>תצוגה חודשית - מתמחים</h2>
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', marginBottom: '20px' }}>
-        <button onClick={() => handleMonthChange(-1)}>חודש קודם</button>
-        <h3>{currentDate.toLocaleString('he-IL', { month: 'long', year: 'numeric' })}</h3>
-        <button onClick={() => handleMonthChange(1)}>חודש הבא</button>
+    <div>
+      <h2 className="section-title">תצוגה חודשית — מתמחים</h2>
+
+      <div className="date-nav">
+        <button className="btn btn-outline" onClick={() => handleMonthChange(-1)}>חודש קודם ➡️</button>
+        <div className="date-nav-label">
+          {currentDate.toLocaleString('he-IL', { month: 'long', year: 'numeric' })}
+        </div>
+        <button className="btn btn-outline" onClick={() => handleMonthChange(1)}>⬅️ חודש הבא</button>
       </div>
+
       {renderMonthGrid()}
     </div>
   );

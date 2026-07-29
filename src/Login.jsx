@@ -3,11 +3,10 @@ import api from './api';
 
 export default function Login({ onLogin }) {
   const [userId, setUserId] = useState('');
-  const [password, setPassword] = useState(''); // שדה הסיסמה החדש
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [staffList, setStaffList] = useState([]);
 
-  // מושכים את רשימת אנשי הצוות כדי שנוכל לאמת תעודות זהות וסיסמאות
   useEffect(() => {
     const fetchStaff = async () => {
       try {
@@ -23,7 +22,6 @@ export default function Login({ onLogin }) {
   const handleLogin = (e) => {
     e.preventDefault();
 
-    // 1. התחברות מנהל
     if (userId === 'admin') {
       if (password === 'soroka') {
         onLogin({ role: 'admin', name: 'מנהל מערכת' });
@@ -33,10 +31,8 @@ export default function Login({ onLogin }) {
       return;
     }
 
-    // 2. התחברות איש צוות (לפי ת.ז)
     const person = staffList.find(s => s.id === userId);
     if (person) {
-      // בדיקת סיסמה מול מספר הטלפון ששמור במסד הנתונים
       if (password === person.phone) {
         onLogin({
           role: 'guest',
@@ -52,42 +48,48 @@ export default function Login({ onLogin }) {
   };
 
   return (
-    <div dir="rtl" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#f0f2f5' }}>
-      <div style={{ background: 'white', padding: '40px', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
-        <h2 style={{ color: '#333', marginBottom: '10px' }}>כניסה למערכת</h2>
-        <p style={{ color: '#666', marginBottom: '30px' }}>חטיבת נשים סורוקה</p>
+    <div dir="rtl" className="login-page">
+      <div className="login-card">
+        <div className="login-logo">🏥</div>
+        <h2>כניסה למערכת</h2>
+        <p className="login-subtitle">חטיבת נשים · בית חולים סורוקה</p>
 
-        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <input
-            type="text"
-            placeholder="תעודת זהות (או admin)"
-            value={userId}
-            onChange={(e) => { setUserId(e.target.value); setError(''); }}
-            style={{ padding: '12px', fontSize: '16px', borderRadius: '5px', border: '1px solid #ccc' }}
-            required
-          />
+        <form onSubmit={handleLogin} className="login-form">
+          <div className="form-group">
+            <label className="form-label">תעודת זהות</label>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="הזן ת.ז. (או admin)"
+              value={userId}
+              onChange={(e) => { setUserId(e.target.value); setError(''); }}
+              required
+            />
+          </div>
 
-          {/* שדה הקלדת סיסמה */}
-          <input
-            type="password"
-            placeholder="סיסמה"
-            value={password}
-            onChange={(e) => { setPassword(e.target.value); setError(''); }}
-            style={{ padding: '12px', fontSize: '16px', borderRadius: '5px', border: '1px solid #ccc' }}
-            required
-          />
+          <div className="form-group">
+            <label className="form-label">סיסמה</label>
+            <input
+              type="password"
+              className="form-input"
+              placeholder="הזן סיסמה"
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); setError(''); }}
+              required
+            />
+          </div>
 
-          {error && <div style={{ color: '#F44336', fontSize: '14px', fontWeight: 'bold' }}>{error}</div>}
+          {error && <div className="form-error">{error}</div>}
 
-          <button type="submit" style={{ padding: '12px', background: '#007BFF', color: 'white', fontSize: '16px', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
+          <button type="submit" className="btn btn-primary btn-lg btn-block">
             התחבר
           </button>
         </form>
 
-        <div style={{ marginTop: '20px', fontSize: '13px', color: '#777', lineHeight: '1.6' }}>
-          * מנהל: הזן סיסמת ניהול.<br/>
-          * רופאים/מתמחים: הסיסמה היא <strong>מספר הטלפון</strong> שלכם.
-        </div>
+        <p className="form-hint" style={{ marginTop: '1.5rem' }}>
+          מנהל: הזן סיסמת ניהול.<br />
+          רופאים/מתמחים: הסיסמה היא <strong>מספר הטלפון</strong> שלכם.
+        </p>
       </div>
     </div>
   );

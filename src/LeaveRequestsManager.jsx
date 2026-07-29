@@ -3,7 +3,7 @@ import api from './api';
 
 export default function LeaveRequestsManager({ user }) {
   const [requests, setRequests] = useState([]);
-  const [staffList, setStaffList] = useState([]); // חדש: שמירת רשימת הצוות לשם השליפה
+  const [staffList, setStaffList] = useState([]);
   const today = new Date().toISOString().split('T')[0];
 
   const [formData, setFormData] = useState({
@@ -20,7 +20,6 @@ export default function LeaveRequestsManager({ user }) {
 
   const fetchData = async () => {
     try {
-      // שליפת גם הבקשות וגם רשימת אנשי הצוות במקביל
       const [reqRes, staffRes] = await Promise.all([
         api.get('/leave-requests/'),
         api.get('/staff/')
@@ -28,14 +27,11 @@ export default function LeaveRequestsManager({ user }) {
 
       setStaffList(staffRes.data);
 
-      // אם זה אורח, נציג רק את הבקשות שלו
       if (user.role === 'guest') {
         setRequests(reqRes.data.filter(r => r.staff_id === user.id));
-        // הגדרת ת.ז ברירת מחדל בטופס של האורח
         setFormData(prev => ({ ...prev, staff_id: user.id }));
       } else {
         setRequests(reqRes.data);
-        // למנהל נגדיר ברירת מחדל של איש הצוות הראשון ברשימה אם קיים
         if (staffRes.data.length > 0) {
           setFormData(prev => ({ ...prev, staff_id: staffRes.data[0].id }));
         }
@@ -45,7 +41,6 @@ export default function LeaveRequestsManager({ user }) {
     }
   };
 
-  // פונקציית עזר להמרת תעודת זהות לשם מלא
   const getStaffName = (id) => {
     const person = staffList.find(s => s.id === id);
     return person ? `${person.first_name} ${person.last_name}` : id;
@@ -57,12 +52,7 @@ export default function LeaveRequestsManager({ user }) {
       await api.post('/leave-requests/', formData);
       alert('הבקשה הוגשה בהצלחה למנהל!');
       fetchData();
-      setFormData(prev => ({
-        ...prev,
-        start_date: today,
-        end_date: today,
-        notes: ''
-      }));
+      setFormData(prev => ({ ...prev, start_date: today, end_date: today, notes: '' }));
     } catch (err) {
       alert('שגיאה בהגשת הבקשה');
     }
@@ -70,7 +60,7 @@ export default function LeaveRequestsManager({ user }) {
 
   const handleAction = async (id, action) => {
     try {
-      await axios.put(`/leave-requests/${id}?action=${action}`);
+      await api.put(`/leave-requests/${id}?action=${action}`);
       alert('הסטטוס עודכן, ואם אושר - הוכנס אוטומטית ליומן ההיעדרויות!');
       fetchData();
     } catch (err) {
@@ -78,23 +68,28 @@ export default function LeaveRequestsManager({ user }) {
     }
   };
 
+  const statusBadge = (status) => {
+    if (status === 'אושר') return 'badge-success';
+    if (status === 'נדחה') return 'badge-danger';
+    return 'badge-warning';
+  };
+
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <h2>{user.role === 'admin' ? 'ניהול בקשות חופשה והיעדרות של הצוות' : 'הגשת בקשת היעדרות / חופשה'}</h2>
+    <div>
+      <h2 className="section-title">
+        {user.role === 'admin' ? 'ניהול בקשות חופשה והיעדרות' : 'הגשת בקשת היעדרות / חופשה'}
+      </h2>
 
-      {/* טופס הגשת בקשה */}
-      <div style={{ border: '1px solid #ccc', padding: '20px', borderRadius: '8px', marginBottom: '30px', backgroundColor: '#f9f9f9' }}>
+      <div className="card section-spacing">
         <h3>הגש בקשה חדשה</h3>
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-
-          {/* אם זה מנהל, ניתן לו אפשרות לבחור איזה איש צוות עבורו הוא מגיש (או לעצמו) */}
+        <form onSubmit={handleSubmit} className="form-grid">
           {user.role === 'admin' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gridColumn: '1 / -1' }}>
-              <label>בחר איש צוות:</label>
+            <div className="form-group full-width">
+              <label className="form-label">בחר איש צוות</label>
               <select
+                className="form-select"
                 value={formData.staff_id}
-                onChange={(e) => setFormData({...formData, staff_id: e.target.value})}
-                style={{ padding: '8px' }}
+                onChange={(e) => setFormData({ ...formData, staff_id: e.target.value })}
                 required
               >
                 {staffList.map(staff => (
@@ -106,12 +101,12 @@ export default function LeaveRequestsManager({ user }) {
             </div>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <label>סוג היעדרות:</label>
+          <div className="form-group">
+            <label className="form-label">סוג היעדרות</label>
             <select
+              className="form-select"
               value={formData.status_type}
-              onChange={(e) => setFormData({...formData, status_type: e.target.value})}
-              style={{ padding: '8px' }}
+              onChange={(e) => setFormData({ ...formData, status_type: e.target.value })}
             >
               <option value="חופשה">חופשה</option>
               <option value="חופשת לידה">חופשת לידה</option>
@@ -124,85 +119,86 @@ export default function LeaveRequestsManager({ user }) {
             </select>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <label>מתאריך:</label>
+          <div className="form-group">
+            <label className="form-label">מתאריך</label>
             <input
               type="date"
+              className="form-input"
               value={formData.start_date}
-              onChange={(e) => setFormData({...formData, start_date: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
               required
-              style={{ padding: '8px' }}
             />
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <label>עד תאריך:</label>
+          <div className="form-group">
+            <label className="form-label">עד תאריך</label>
             <input
               type="date"
+              className="form-input"
               value={formData.end_date}
               min={formData.start_date}
-              onChange={(e) => setFormData({...formData, end_date: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
               required
-              style={{ padding: '8px' }}
             />
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gridColumn: '1 / -1' }}>
-            <label>הערות (סיבת הבקשה):</label>
+          <div className="form-group full-width">
+            <label className="form-label">הערות (סיבת הבקשה)</label>
             <input
               type="text"
+              className="form-input"
               placeholder="פירוט נוסף..."
               value={formData.notes}
-              onChange={(e) => setFormData({...formData, notes: e.target.value})}
-              style={{ padding: '8px' }}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             />
           </div>
 
-          <button type="submit" style={{ gridColumn: '1 / -1', padding: '10px', background: '#007BFF', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '16px' }}>
-            {user.role === 'admin' ? 'הוסף בקשה למערכת' : 'שלח בקשה לאישור המנהל'}
-          </button>
+          <div className="form-group full-width">
+            <button type="submit" className="btn btn-primary">
+              {user.role === 'admin' ? 'הוסף בקשה למערכת' : 'שלח בקשה לאישור המנהל'}
+            </button>
+          </div>
         </form>
       </div>
 
-      {/* טבלת הבקשות */}
       <h3>{user.role === 'admin' ? 'כל הבקשות במערכת' : 'הבקשות שלי'}</h3>
-      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
-        <thead>
-          <tr style={{ background: '#eee', borderBottom: '2px solid #ccc' }}>
-            {user.role === 'admin' && <th style={{ padding: '10px' }}>שם איש הצוות</th>}
-            <th style={{ padding: '10px' }}>סוג</th>
-            <th style={{ padding: '10px' }}>מתאריך</th>
-            <th style={{ padding: '10px' }}>עד תאריך</th>
-            <th style={{ padding: '10px' }}>הערות</th>
-            <th style={{ padding: '10px' }}>סטטוס</th>
-            {user.role === 'admin' && <th style={{ padding: '10px' }}>פעולות ניהול</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {requests.map((req) => (
-            <tr key={req.id} style={{ borderBottom: '1px solid #ddd' }}>
-              {user.role === 'admin' && <td style={{ padding: '10px', fontWeight: 'bold' }}>{getStaffName(req.staff_id)}</td>}
-              <td style={{ padding: '10px', color: '#d32f2f' }}>{req.status_type}</td>
-              <td style={{ padding: '10px' }}>{req.start_date}</td>
-              <td style={{ padding: '10px' }}>{req.end_date}</td>
-              <td style={{ padding: '10px' }}>{req.notes}</td>
-              <td style={{ padding: '10px', fontWeight: 'bold', color: req.status === 'אושר' ? 'green' : req.status === 'נדחה' ? 'red' : 'orange' }}>
-                {req.status}
-              </td>
-              {user.role === 'admin' && (
-                <td style={{ padding: '10px' }}>
-                  {req.status === 'ממתין לאישור' && (
-                    <div style={{ display: 'flex', gap: '5px' }}>
-                      <button onClick={() => handleAction(req.id, 'approve')} style={{ background: '#4CAF50', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}>אשר</button>
-                      <button onClick={() => handleAction(req.id, 'reject')} style={{ background: '#F44336', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}>דחה</button>
-                    </div>
-                  )}
-                </td>
-              )}
+      <div className="table-wrapper">
+        <table className="data-table">
+          <thead>
+            <tr>
+              {user.role === 'admin' && <th>שם איש הצוות</th>}
+              <th>סוג</th>
+              <th>מתאריך</th>
+              <th>עד תאריך</th>
+              <th>הערות</th>
+              <th>סטטוס</th>
+              {user.role === 'admin' && <th>פעולות</th>}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {requests.map((req) => (
+              <tr key={req.id}>
+                {user.role === 'admin' && <td><strong>{getStaffName(req.staff_id)}</strong></td>}
+                <td><span className="badge badge-danger">{req.status_type}</span></td>
+                <td>{req.start_date}</td>
+                <td>{req.end_date}</td>
+                <td>{req.notes}</td>
+                <td><span className={`badge ${statusBadge(req.status)}`}>{req.status}</span></td>
+                {user.role === 'admin' && (
+                  <td>
+                    {req.status === 'ממתין לאישור' && (
+                      <div className="action-row">
+                        <button onClick={() => handleAction(req.id, 'approve')} className="btn btn-success btn-sm">אשר</button>
+                        <button onClick={() => handleAction(req.id, 'reject')} className="btn btn-danger btn-sm">דחה</button>
+                      </div>
+                    )}
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

@@ -57,24 +57,18 @@ export default function AbsenceManager() {
       await api.post('/absences/', formData);
       alert('היעדרות נרשמה בהצלחה!');
       fetchAbsences();
-      setFormData(prev => ({
-        ...prev,
-        start_date: today,
-        end_date: today,
-        notes: ''
-      }));
+      setFormData(prev => ({ ...prev, start_date: today, end_date: today, notes: '' }));
     } catch (error) {
       alert('שגיאה בהוספת היעדרות: ' + (error.response?.data?.detail || error.message));
     }
   };
 
-  // פונקציית מחיקת היעדרות
   const handleDelete = async (id) => {
     if (!window.confirm('האם אתה בטוח שברצונך למחוק היעדרות זו?')) return;
     try {
       await api.delete(`/absences/${id}`);
       alert('ההיעדרות נמחקה בהצלחה!');
-      fetchAbsences(); // רענון הטבלה
+      fetchAbsences();
     } catch (error) {
       alert('שגיאה במחיקת ההיעדרות');
     }
@@ -86,15 +80,15 @@ export default function AbsenceManager() {
   };
 
   return (
-    <div style={{ padding: '15px' }}>
-      <h2>ניהול היעדרויות</h2>
+    <div>
+      <h2 className="section-title">ניהול היעדרויות</h2>
 
-      <div style={{ border: '1px solid #ccc', padding: '20px', borderRadius: '8px', marginBottom: '30px', backgroundColor: '#f9f9f9' }}>
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }} id="absence-form">
-
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <label>איש צוות:</label>
-            <select name="staff_id" value={formData.staff_id} onChange={handleChange} required style={{ padding: '8px' }}>
+      <div className="card section-spacing">
+        <h3>רישום היעדרות חדשה</h3>
+        <form onSubmit={handleSubmit} className="form-grid">
+          <div className="form-group">
+            <label className="form-label">איש צוות</label>
+            <select name="staff_id" className="form-select" value={formData.staff_id} onChange={handleChange} required>
               {staffList.map(staff => (
                 <option key={staff.id} value={staff.id}>
                   {staff.first_name} {staff.last_name} ({staff.role})
@@ -103,9 +97,9 @@ export default function AbsenceManager() {
             </select>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <label>סטטוס:</label>
-            <select name="status_type" value={formData.status_type} onChange={handleChange} style={{ padding: '8px' }}>
+          <div className="form-group">
+            <label className="form-label">סטטוס</label>
+            <select name="status_type" className="form-select" value={formData.status_type} onChange={handleChange}>
               <option value="חופשה">חופשה</option>
               <option value="חופשת לידה">חופשת לידה</option>
               <option value="השתלמות">השתלמות</option>
@@ -119,53 +113,52 @@ export default function AbsenceManager() {
             </select>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <label>מתאריך:</label>
-            <input type="date" name="start_date" value={formData.start_date} onChange={handleChange} required style={{ padding: '8px' }} />
+          <div className="form-group">
+            <label className="form-label">מתאריך</label>
+            <input type="date" name="start_date" className="form-input" value={formData.start_date} onChange={handleChange} required />
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <label>עד תאריך:</label>
-            <input type="date" name="end_date" min={formData.start_date} value={formData.end_date} onChange={handleChange} required style={{ padding: '8px' }} />
+          <div className="form-group">
+            <label className="form-label">עד תאריך</label>
+            <input type="date" name="end_date" className="form-input" min={formData.start_date} value={formData.end_date} onChange={handleChange} required />
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gridColumn: '1 / -1' }}>
-            <label>הערות (טקסט חופשי):</label>
-            <input type="text" name="notes" placeholder="לדוגמה: כנס בחו״ל..." value={formData.notes} onChange={handleChange} style={{ padding: '8px' }} />
+          <div className="form-group full-width">
+            <label className="form-label">הערות</label>
+            <input type="text" name="notes" className="form-input" placeholder="לדוגמה: כנס בחו״ל..." value={formData.notes} onChange={handleChange} />
           </div>
 
-          <button type="submit" style={{ gridColumn: '1 / -1', padding: '10px', background: '#F44336', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '16px' }}>
-            שמור היעדרות במערכת
-          </button>
+          <div className="form-group full-width">
+            <button type="submit" className="btn btn-danger">
+              שמור היעדרות במערכת
+            </button>
+          </div>
         </form>
       </div>
 
       <h3>היעדרויות קודמות ועתידיות</h3>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', minWidth: '600px' }} id="absences-table">
+      <div className="table-wrapper">
+        <table className="data-table">
           <thead>
-            <tr style={{ background: '#eee', borderBottom: '2px solid #ccc' }}>
-              <th style={{ padding: '10px' }}>שם איש צוות</th>
-              <th style={{ padding: '10px' }}>סוג היעדרות</th>
-              <th style={{ padding: '10px' }}>מתאריך</th>
-              <th style={{ padding: '10px' }}>עד תאריך</th>
-              <th style={{ padding: '10px' }}>הערות</th>
-              <th style={{ padding: '10px' }}>פעולות</th>
+            <tr>
+              <th>שם איש צוות</th>
+              <th>סוג היעדרות</th>
+              <th>מתאריך</th>
+              <th>עד תאריך</th>
+              <th>הערות</th>
+              <th>פעולות</th>
             </tr>
           </thead>
           <tbody>
             {absencesList.map((absence) => (
-              <tr key={absence.id} style={{ borderBottom: '1px solid #ddd' }}>
-                <td style={{ padding: '10px' }}>{getStaffName(absence.staff_id)}</td>
-                <td style={{ padding: '10px', color: '#d32f2f', fontWeight: 'bold' }}>{absence.status_type}</td>
-                <td style={{ padding: '10px' }}>{formatDateToIL(absence.start_date)}</td>
-                <td style={{ padding: '10px' }}>{formatDateToIL(absence.end_date)}</td>
-                <td style={{ padding: '10px' }}>{absence.notes}</td>
-                <td style={{ padding: '10px' }}>
-                  <button
-                    onClick={() => handleDelete(absence.id)}
-                    style={{ background: '#F44336', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}
-                  >
+              <tr key={absence.id}>
+                <td><strong>{getStaffName(absence.staff_id)}</strong></td>
+                <td><span className="badge badge-danger">{absence.status_type}</span></td>
+                <td>{formatDateToIL(absence.start_date)}</td>
+                <td>{formatDateToIL(absence.end_date)}</td>
+                <td>{absence.notes}</td>
+                <td>
+                  <button onClick={() => handleDelete(absence.id)} className="btn btn-danger btn-sm">
                     מחק
                   </button>
                 </td>
@@ -174,27 +167,6 @@ export default function AbsenceManager() {
           </tbody>
         </table>
       </div>
-      <style>{`
-        @media (max-width: 600px) {
-          #absence-form {
-            grid-template-columns: 1fr; /* Stack form elements vertically */
-          }
-          #absence-form > div {
-            grid-column: auto !important; /* Override gridColumn for notes and button */
-          }
-          #absences-table th, #absences-table td {
-            padding: 8px 5px; /* Reduce padding */
-            font-size: 12px; /* Smaller font size */
-          }
-          #absences-table button {
-            padding: 4px 8px;
-            font-size: 11px;
-          }
-          h2, h3 {
-            font-size: 1.2em;
-          }
-        }
-      `}</style>
     </div>
   );
 }

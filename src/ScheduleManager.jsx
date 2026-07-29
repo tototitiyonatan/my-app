@@ -195,58 +195,64 @@ export default function ScheduleManager({ isAdmin }) {
   const unscheduledForDay = getUnscheduledForDay(currentDay);
 
   return (
-    <div style={{ maxWidth: '95%', margin: '0 auto', padding: '0 10px' }}>
-
-      <div id="controls-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '15px', background: '#f5f5f5', borderRadius: '8px', flexWrap: 'wrap', gap: '15px' }}>
+    <div>
+      <div className="controls-panel no-print">
         {isAdmin && (
-          <>
-            <form onSubmit={handleAddStation} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-              <input type="text" placeholder="שם התחנה החדשה..." value={newStationName} onChange={(e) => setNewStationName(e.target.value)} style={{ padding: '8px', flex: '1 1 150px' }} />
-              <select value={parentStationId} onChange={(e) => setParentStationId(e.target.value)} style={{ padding: '8px', flex: '1 1 150px' }}>
+          <div className="action-row">
+            <form onSubmit={handleAddStation} className="action-row">
+              <input
+                type="text"
+                className="form-input"
+                placeholder="שם התחנה החדשה..."
+                value={newStationName}
+                onChange={(e) => setNewStationName(e.target.value)}
+                style={{ minWidth: '150px' }}
+              />
+              <select className="form-select" value={parentStationId} onChange={(e) => setParentStationId(e.target.value)} style={{ minWidth: '180px' }}>
                 <option value="">-- זוהי תחנה ראשית --</option>
-                {mainStations.map(station => (<option key={station.id} value={station.id}>תת-תחנה של: {station.name}</option>))}
+                {mainStations.map(station => (
+                  <option key={station.id} value={station.id}>תת-תחנה של: {station.name}</option>
+                ))}
               </select>
-              <button type="submit" style={{ padding: '8px 15px', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', flex: '1 1 100px' }}>הוסף תחנה</button>
+              <button type="submit" className="btn btn-success btn-sm">הוסף תחנה</button>
             </form>
-            <div>
-              <label style={{ padding: '8px 15px', background: '#3F51B5', color: 'white', borderRadius: '4px', cursor: 'pointer', display: 'inline-block' }}>
-                📄 העלה קובץ שלבי מתמחים
-                <input type="file" accept=".xlsx,.xls,.csv" onChange={handleUploadStages} style={{ display: 'none' }} />
-              </label>
-              {stageUploadMsg && <div style={{ fontSize: '12px', marginTop: '5px' }}>{stageUploadMsg}</div>}
-            </div>
-          </>
+            <label className="btn btn-primary btn-sm" style={{ cursor: 'pointer' }}>
+              📄 העלה קובץ שלבי מתמחים
+              <input type="file" accept=".xlsx,.xls,.csv" onChange={handleUploadStages} style={{ display: 'none' }} />
+            </label>
+            {stageUploadMsg && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{stageUploadMsg}</span>}
+          </div>
         )}
 
-        <div id="action-buttons" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button onClick={exportToExcel} style={{ padding: '8px 15px', background: '#217346', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>📊 ייצוא לאקסל</button>
-          <button onClick={() => window.print()} style={{ padding: '8px 15px', background: '#607D8B', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>🖨️ הדפס PDF</button>
+        <div className="action-row">
+          <button onClick={exportToExcel} className="btn btn-success btn-sm">📊 ייצוא לאקסל</button>
+          <button onClick={() => window.print()} className="btn btn-outline btn-sm">🖨️ הדפס PDF</button>
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
-        <button onClick={() => setDayOffset(prev => prev - 1)} style={{ padding: '5px 10px', cursor: 'pointer' }}>➡️ יום קודם</button>
-        <h3 style={{ margin: 0, fontSize: '1.1em', textAlign: 'center' }}>
+      <div className="date-nav">
+        <button className="btn btn-outline btn-sm" onClick={() => setDayOffset(prev => prev - 1)}>➡️ יום קודם</button>
+        <div className="date-nav-label">
           {new Date(currentDay + 'T00:00:00').toLocaleDateString('he-IL', { weekday: 'long' })}, {formatDateToIL(currentDay)}
-          {holidays[currentDay] && <div style={{ fontSize: '12px', color: 'darkblue' }}>{holidays[currentDay]}</div>}
-        </h3>
-        <button onClick={() => setDayOffset(prev => prev + 1)} style={{ padding: '5px 10px', cursor: 'pointer' }}>יום הבא ⬅️</button>
+          {holidays[currentDay] && <div className="date-nav-holiday">{holidays[currentDay]}</div>}
+        </div>
+        <button className="btn btn-outline btn-sm" onClick={() => setDayOffset(prev => prev + 1)}>יום הבא ⬅️</button>
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', minWidth: '1200px' }}>
+      <div className="table-wrapper">
+        <table className="schedule-table">
           <thead>
-            <tr style={{ background: '#3F51B5', color: 'white' }}>
+            <tr>
               {headerGroups.map(hg => (
-                <th key={hg.id} colSpan={hg.colSpan} style={{ padding: '8px', border: '1px solid #ddd' }}>{hg.name}</th>
+                <th key={hg.id} colSpan={hg.colSpan} className="header-main">{hg.name}</th>
               ))}
-              <th style={{ padding: '8px', border: '1px solid #ddd', background: '#FF9800', minWidth: '110px' }}>לא משובצים - מומחים</th>
-              <th style={{ padding: '8px', border: '1px solid #ddd', background: '#FF9800', minWidth: '110px' }}>לא משובצים - מתמחים</th>
-              <th style={{ padding: '8px', border: '1px solid #ddd', background: '#F44336', minWidth: '100px' }}>היעדרויות</th>
+              <th className="header-unscheduled" style={{ minWidth: '110px' }}>לא משובצים - מומחים</th>
+              <th className="header-unscheduled" style={{ minWidth: '110px' }}>לא משובצים - מתמחים</th>
+              <th className="header-absences" style={{ minWidth: '100px' }}>היעדרויות</th>
             </tr>
-            <tr style={{ background: '#5C6BC0', color: 'white', fontSize: '13px' }}>
+            <tr>
               {displayColumns.map(col => (
-                <th key={col.id} style={{ padding: '6px', border: '1px solid #ddd', fontWeight: 'normal' }}>
+                <th key={col.id} className="header-sub">
                   {col.parent_station_id ? col.name : 'ראשי'}
                 </th>
               ))}
@@ -260,20 +266,19 @@ export default function ScheduleManager({ isAdmin }) {
                 return (
                   <td
                     key={station.id}
-                    style={{ padding: '5px', border: '1px solid #ddd', verticalAlign: 'top' }}
                     onDragOver={handleDragOverCell}
                     onDrop={(e) => handleDropOnStation(e, currentDay, station.id)}
                   >
                     {scheduledHere.map(s => {
                       const stage = getStageLabel(s.staff_id, currentDay);
                       return (
-                        <div key={s.id} style={{ background: '#E3F2FD', padding: '4px', borderRadius: '4px', marginBottom: '4px', fontSize: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px' }}>
-                          <span style={{ flexShrink: 1 }}>
+                        <div key={s.id} className="schedule-chip">
+                          <span>
                             {getStaffName(s.staff_id)}
-                            {stage && <div style={{ fontSize: '10px', color: '#555' }}>({stage})</div>}
+                            {stage && <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>({stage})</div>}
                           </span>
                           {isAdmin && (
-                            <button onClick={() => handleDeleteSchedule(s.id)} style={{ background: 'none', border: 'none', color: '#d32f2f', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px', padding: '0 3px' }} title="הסר שיבוץ">✕</button>
+                            <button className="schedule-chip-remove" onClick={() => handleDeleteSchedule(s.id)} title="הסר שיבוץ">✕</button>
                           )}
                         </div>
                       );
@@ -281,30 +286,35 @@ export default function ScheduleManager({ isAdmin }) {
 
                     {isAdmin && (
                       <select
+                        className="form-select"
                         onChange={(e) => { handleAddSchedule(currentDay, station.id, e.target.value); e.target.value = ""; }}
-                        style={{ width: '100%', marginTop: '5px', padding: '4px', fontSize: '12px' }}
+                        style={{ width: '100%', marginTop: '4px', padding: '2px', fontSize: '0.7rem' }}
                       >
                         <option value="">+ שבץ</option>
-                        {unscheduledForDay.all.map(person => (<option key={person.id} value={person.id}>{person.last_name}</option>))}
+                        {unscheduledForDay.all.map(person => (
+                          <option key={person.id} value={person.id}>{person.last_name}</option>
+                        ))}
                       </select>
                     )}
                   </td>
                 );
               })}
 
-              <td style={{ padding: '5px', border: '1px solid #ddd', verticalAlign: 'top', background: '#fff3e0' }}>
+              <td className="cell-unscheduled">
                 {unscheduledForDay.specialists.map(person => (
                   <div
                     key={person.id}
                     draggable={isAdmin}
                     onDragStart={() => handleDragStart(person.id)}
-                    style={{ background: 'white', border: '1px solid #ffcc80', padding: '4px', borderRadius: '4px', marginBottom: '4px', fontSize: '12px', cursor: isAdmin ? 'grab' : 'default' }}
+                    className="unscheduled-chip"
+                    style={{ cursor: isAdmin ? 'grab' : 'default' }}
                   >
                     {person.last_name}
                   </div>
                 ))}
               </td>
-              <td style={{ padding: '5px', border: '1px solid #ddd', verticalAlign: 'top', background: '#fff3e0' }}>
+
+              <td className="cell-unscheduled">
                 {unscheduledForDay.interns.map(person => {
                   const stage = getStageLabel(person.id, currentDay);
                   return (
@@ -312,22 +322,23 @@ export default function ScheduleManager({ isAdmin }) {
                       key={person.id}
                       draggable={isAdmin}
                       onDragStart={() => handleDragStart(person.id)}
-                      style={{ background: 'white', border: '1px solid #ffcc80', padding: '4px', borderRadius: '4px', marginBottom: '4px', fontSize: '12px', cursor: isAdmin ? 'grab' : 'default' }}
+                      className="unscheduled-chip"
+                      style={{ cursor: isAdmin ? 'grab' : 'default' }}
                     >
                       {person.last_name}
-                      {stage && <div style={{ fontSize: '10px', color: '#555' }}>({stage})</div>}
+                      {stage && <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>({stage})</div>}
                     </div>
                   );
                 })}
               </td>
 
-              <td style={{ padding: '5px', border: '1px solid #ddd', verticalAlign: 'top', background: '#ffebee' }}>
+              <td className="cell-absences">
                 {absences
                   .filter(a => a.start_date <= currentDay && a.end_date >= currentDay)
                   .map(absence => (
-                    <div key={absence.id} style={{ background: 'white', border: '1px solid #ffcdd2', padding: '4px', borderRadius: '4px', marginBottom: '4px', fontSize: '12px', textAlign: 'right' }}>
+                    <div key={absence.id} className="absence-chip">
                       <strong>{getStaffName(absence.staff_id)}</strong><br />
-                      <span style={{ fontSize: '11px', color: '#c62828' }}>{absence.status_type}</span>
+                      <span style={{ fontSize: '0.65rem', color: 'var(--danger)' }}>{absence.status_type}</span>
                     </div>
                   ))}
               </td>
@@ -335,14 +346,6 @@ export default function ScheduleManager({ isAdmin }) {
           </tbody>
         </table>
       </div>
-
-      <style>{`
-        @media print {
-          form, button, select, #controls-panel, #action-buttons { display: none !important; }
-          body { -webkit-print-color-adjust: exact; }
-          @page { size: landscape; }
-        }
-      `}</style>
     </div>
   );
 }
