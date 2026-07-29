@@ -49,7 +49,6 @@ export default function Dashboard() {
             <div className="stat-card-label">נוכחים</div>
             <div className="stat-card-value">{stats.present}</div>
             <div className="stat-card-detail">
-              מנהלים: {stats.present_breakdown['מנהל'] || 0} ·
               מומחים: {stats.present_breakdown['מומחה'] || 0} ·
               מתמחים: {stats.present_breakdown['מתמחה'] || 0}
             </div>
@@ -66,7 +65,6 @@ export default function Dashboard() {
                   <li key={status}>
                     <strong>{status}: {data.total}</strong>
                     <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                      מנהלים: {data.breakdown['מנהל'] || 0} ·
                       מומחים: {data.breakdown['מומחה'] || 0} ·
                       מתמחים: {data.breakdown['מתמחה'] || 0}
                     </span>

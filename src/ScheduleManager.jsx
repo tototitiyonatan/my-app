@@ -92,6 +92,25 @@ export default function ScheduleManager({ isAdmin }) {
     } catch (error) { alert(error.response?.data?.detail || 'שגיאה במחיקת השיבוץ'); }
   };
 
+  const handleClearDaySchedules = async () => {
+    const daySchedules = schedules.filter((s) => s.date === currentDay);
+    if (daySchedules.length === 0) {
+      alert('אין שיבוצים ליום זה.');
+      return;
+    }
+    if (!window.confirm(`למחוק את כל ${daySchedules.length} השיבוצים ליום ${formatDateToIL(currentDay)}?`)) return;
+
+    try {
+      await Promise.all(daySchedules.map((s) => api.delete(`/schedules/${s.id}`)));
+      setSelectedStaffId(null);
+      await fetchData();
+      alert('כל השיבוצים ליום זה נמחקו.');
+    } catch (error) {
+      alert(error.response?.data?.detail || 'שגיאה במחיקת שיבוצים');
+      fetchData();
+    }
+  };
+
   const getStationDisplayName = (station) => {
     if (station.parent_station_id) {
       const parent = stations.find((s) => s.id === station.parent_station_id);
@@ -299,6 +318,14 @@ export default function ScheduleManager({ isAdmin }) {
               disabled={autoScheduling}
             >
               {autoScheduling ? '⏳ משבץ...' : '🤖 שיבוץ אוטומטי למתמחים'}
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={handleClearDaySchedules}
+              className="btn btn-danger btn-sm"
+            >
+              🗑️ נקה שיבוצים ליום
             </button>
           )}
           <button onClick={exportToExcel} className="btn btn-success btn-sm">📊 ייצוא לאקסל</button>

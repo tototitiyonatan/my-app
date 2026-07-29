@@ -1,26 +1,36 @@
 import { useState, useEffect } from 'react';
 import api from './api';
 import { StaffName } from './staffDisplay';
+import { getTraining, setTraining, TRAINING_OPTIONS } from './staffTraining';
+import InternProgramSingle from './InternProgramSingle';
 
 export default function StaffManager() {
   const [staffList, setStaffList] = useState([]);
+  const [trainingMap, setTrainingMap] = useState({});
   const [formData, setFormData] = useState({
     id: '',
     first_name: '',
     last_name: '',
     role: 'מתמחה',
     phone: '',
-    email: ''
+    email: '',
+    training: '',
   });
   const [editingId, setEditingId] = useState(null);
   const [editFormData, setEditFormData] = useState({});
   const [selectedFile, setSelectedFile] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewingIntern, setViewingIntern] = useState(null);
 
   const fetchStaff = async () => {
     try {
       const response = await api.get('/staff/');
       setStaffList(response.data);
+      setTrainingMap(
+        Object.fromEntries(
+          response.data.map((s) => [s.id, getTraining(s.id)])
+        )
+      );
     } catch (error) {
       console.error('שגיאה בשליפת נתונים:', error);
     }
@@ -38,13 +48,20 @@ export default function StaffManager() {
     setEditFormData({ ...editFormData, [e.target.name]: e.target.value });
   };
 
+  const saveTraining = (staffId, value) => {
+    setTraining(staffId, value);
+    setTrainingMap((prev) => ({ ...prev, [staffId]: value }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const { training, ...staffPayload } = formData;
     try {
-      await api.post('/staff/', formData);
+      await api.post('/staff/', staffPayload);
+      if (staffPayload.role === 'מתמחה') saveTraining(staffPayload.id, training);
       alert('איש צוות נוסף בהצלחה!');
       fetchStaff();
-      setFormData({ id: '', first_name: '', last_name: '', role: 'מתמחה', phone: '', email: '' });
+      setFormData({ id: '', first_name: '', last_name: '', role: 'מתמחה', phone: '', email: '', training: '' });
     } catch (error) {
       alert('שגיאה בהוספת איש צוות: ' + (error.response?.data?.detail || error.message));
     }
@@ -52,8 +69,11 @@ export default function StaffManager() {
 
   const handleUpdate = async (e) => {
     e.preventDefault();
+    const { training, ...staffPayload } = editFormData;
     try {
-      await api.put(`/staff/${editingId}`, editFormData);
+      await api.put(`/staff/${editingId}`, staffPayload);
+      if (staffPayload.role === 'מתמחה') saveTraining(editingId, training || '');
+      else saveTraining(editingId, '');
       alert('פרטי איש צוות עודכנו בהצלחה!');
       setEditingId(null);
       fetchStaff();
@@ -66,6 +86,7 @@ export default function StaffManager() {
     if (!window.confirm('האם אתה בטוח שברצונך למחוק איש צוות זה?')) return;
     try {
       await api.delete(`/staff/${id}`);
+      saveTraining(id, '');
       alert('איש צוות נמחק בהצלחה');
       fetchStaff();
     } catch (error) {
@@ -86,7 +107,14 @@ export default function StaffManager() {
 
   const handleEditClick = (staff) => {
     setEditingId(staff.id);
-    setEditFormData(staff);
+    setEditFormData({
+      ...staff,
+      training: staff.role === 'מתמחה' ? getTraining(staff.id) : '',
+    });
+  };
+
+  const handleTrainingChange = (staffId, value) => {
+    saveTraining(staffId, value);
   };
 
   const handleFileChange = (event) => {
@@ -95,16 +123,16 @@ export default function StaffManager() {
 
   const handleFileUpload = async () => {
     if (!selectedFile) {
-      alert("Please select a file first.");
+      alert('Please select a file first.');
       return;
     }
 
     const uploadData = new FormData();
-    uploadData.append("file", selectedFile);
+    uploadData.append('file', selectedFile);
 
     try {
-      const response = await api.post("/staff/upload", uploadData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      const response = await api.post('/staff/upload', uploadData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
       alert(response.data.message);
       fetchStaff();
@@ -116,19 +144,33 @@ export default function StaffManager() {
   const filteredStaff = staffList.filter((s) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.trim().toLowerCase();
+    const training = trainingMap[s.id] || '';
     return (
       s.id.includes(q) ||
       s.first_name.toLowerCase().includes(q) ||
       s.last_name.toLowerCase().includes(q) ||
       s.role.toLowerCase().includes(q) ||
+      training.toLowerCase().includes(q) ||
       (s.phone && s.phone.includes(q)) ||
       (s.email && s.email.toLowerCase().includes(q))
     );
   });
 
+  const showTrainingField = editingId
+    ? editFormData.role === 'מתמחה'
+    : formData.role === 'מתמחה';
+
   return (
     <div>
       <h2 className="section-title">ניהול אנשי צוות</h2>
+
+      {viewingIntern && (
+        <div className="modal-overlay" onClick={() => setViewingIntern(null)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <InternProgramSingle staff={viewingIntern} onClose={() => setViewingIntern(null)} />
+          </div>
+        </div>
+      )}
 
       <div className="card section-spacing">
         <h3>{editingId ? 'עריכת פרטי איש צוות' : 'הוספת איש צוות חדש'}</h3>
@@ -148,11 +190,26 @@ export default function StaffManager() {
           <div className="form-group">
             <label className="form-label">תפקיד</label>
             <select name="role" className="form-select" value={editingId ? editFormData.role : formData.role} onChange={editingId ? handleEditChange : handleChange}>
-              <option value="מנהל">מנהל</option>
               <option value="מומחה">מומחה</option>
               <option value="מתמחה">מתמחה</option>
             </select>
           </div>
+          {showTrainingField && (
+            <div className="form-group">
+              <label className="form-label">הכשרה</label>
+              <select
+                name="training"
+                className="form-select"
+                value={editingId ? (editFormData.training || '') : (formData.training || '')}
+                onChange={editingId ? handleEditChange : handleChange}
+              >
+                <option value="">— ללא —</option>
+                {TRAINING_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="form-group">
             <label className="form-label">טלפון</label>
             <input type="tel" name="phone" className="form-input" placeholder="טלפון" value={editingId ? editFormData.phone : formData.phone} onChange={editingId ? handleEditChange : handleChange} />
@@ -197,7 +254,7 @@ export default function StaffManager() {
         <input
           type="search"
           className="form-input"
-          placeholder="חפש לפי שם, ת.ז., תפקיד, טלפון..."
+          placeholder="חפש לפי שם, ת.ז., תפקיד, הכשרה, טלפון..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
@@ -209,6 +266,7 @@ export default function StaffManager() {
               <th>ת.ז</th>
               <th>שם מלא</th>
               <th>תפקיד</th>
+              <th>הכשרה</th>
               <th>טלפון</th>
               <th>דוא"ל</th>
               <th style={{ textAlign: 'center' }}>פעולות</th>
@@ -218,8 +276,39 @@ export default function StaffManager() {
             {filteredStaff.map((staff) => (
               <tr key={staff.id}>
                 <td>{staff.id}</td>
-                <td><StaffName person={staff} as="strong" /> <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({staff.first_name})</span></td>
+                <td>
+                  {staff.role === 'מתמחה' ? (
+                    <button
+                      type="button"
+                      className="staff-name-link"
+                      onClick={() => setViewingIntern(staff)}
+                      title="לחץ לצפייה בתוכנית התמחות"
+                    >
+                      <StaffName person={staff} as="strong" />
+                    </button>
+                  ) : (
+                    <StaffName person={staff} as="strong" />
+                  )}
+                  <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> ({staff.first_name})</span>
+                </td>
                 <td><span className="badge badge-info">{staff.role}</span></td>
+                <td>
+                  {staff.role === 'מתמחה' ? (
+                    <select
+                      className="form-select"
+                      style={{ minWidth: '160px', padding: '0.35rem 0.5rem', fontSize: '0.8rem' }}
+                      value={trainingMap[staff.id] || ''}
+                      onChange={(e) => handleTrainingChange(staff.id, e.target.value)}
+                    >
+                      <option value="">—</option>
+                      {TRAINING_OPTIONS.map((opt) => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    '—'
+                  )}
+                </td>
                 <td>{staff.phone}</td>
                 <td>{staff.email}</td>
                 <td style={{ textAlign: 'center' }}>
