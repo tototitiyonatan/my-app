@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from './api';
+import { findStaffByLogin } from './staffDisplay';
 
 export default function Login({ onLogin }) {
   const [userId, setUserId] = useState('');
@@ -22,7 +23,7 @@ export default function Login({ onLogin }) {
   const handleLogin = (e) => {
     e.preventDefault();
 
-    if (userId === 'admin') {
+    if (userId.trim().toLowerCase() === 'admin') {
       if (password === 'soroka') {
         onLogin({ role: 'admin', name: 'מנהל מערכת' });
       } else {
@@ -31,19 +32,27 @@ export default function Login({ onLogin }) {
       return;
     }
 
-    const person = staffList.find(s => s.id === userId);
+    const person = findStaffByLogin(staffList, userId);
     if (person) {
       if (password === person.phone) {
         onLogin({
           role: 'guest',
-          name: `${person.first_name} ${person.last_name}`,
-          id: person.id
+          name: person.last_name,
+          id: person.id,
         });
       } else {
         setError('סיסמה שגויה. הסיסמה שלך היא מספר הטלפון המעודכן במערכת.');
       }
     } else {
-      setError('תעודת זהות לא נמצאה במערכת. נסה שוב או פנה למנהל.');
+      const trimmed = userId.trim();
+      const lastNameMatches = staffList.filter(
+        (s) => s.last_name.trim().toLowerCase() === trimmed.toLowerCase()
+      );
+      if (lastNameMatches.length > 1) {
+        setError('נמצאו מספר אנשי צוות עם שם משפחה זה. הזן ת.ז.');
+      } else {
+        setError('לא נמצא במערכת. הזן ת.ז. או שם משפחה, או פנה למנהל.');
+      }
     }
   };
 
@@ -56,11 +65,11 @@ export default function Login({ onLogin }) {
 
         <form onSubmit={handleLogin} className="login-form">
           <div className="form-group">
-            <label className="form-label">תעודת זהות</label>
+            <label className="form-label">ת.ז. / שם משפחה</label>
             <input
               type="text"
               className="form-input"
-              placeholder="הזן ת.ז. (או admin)"
+              placeholder="הזן ת.ז., שם משפחה, או admin"
               value={userId}
               onChange={(e) => { setUserId(e.target.value); setError(''); }}
               required
@@ -87,8 +96,9 @@ export default function Login({ onLogin }) {
         </form>
 
         <p className="form-hint" style={{ marginTop: '1.5rem' }}>
-          מנהל: הזן סיסמת ניהול.<br />
-          רופאים/מתמחים: הסיסמה היא <strong>מספר הטלפון</strong> שלכם.
+          מנהל: הזן admin וסיסמת ניהול.<br />
+          רופאים/מתמחים: ניתן להיכנס עם ת.ז. או שם משפחה.<br />
+          הסיסמה היא <strong>מספר הטלפון</strong> המעודכן במערכת.
         </p>
       </div>
     </div>

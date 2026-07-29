@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from './api';
+import { fetchHolidaysForMonth, holidaysByDayOfMonth } from './holidays';
+import { StaffName } from './staffDisplay';
 
 export default function MonthlyView() {
   const [schedules, setSchedules] = useState([]);
@@ -10,7 +12,10 @@ export default function MonthlyView() {
   const [holidays, setHolidays] = useState({});
 
   useEffect(() => { fetchData(); }, []);
-  useEffect(() => { fetchHolidays(); }, [currentDate]);
+
+  useEffect(() => {
+    loadHolidays();
+  }, [currentDate]);
 
   const fetchData = async () => {
     try {
@@ -27,41 +32,11 @@ export default function MonthlyView() {
     } catch (error) { console.error('שגיאה בשליפת נתונים:', error); }
   };
 
-  const fetchHolidays = async () => {
+  const loadHolidays = async () => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth() + 1;
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const newHolidays = {};
-    const majorIslamicHolidays = ["Eid al-Fitr", "Eid al-Adha", "Laylat al-Qadr", "Muharram", "Mawlid al-Nabi"];
-
-    try {
-      const hebcalResponse = await fetch(`https://www.hebcal.com/hebcal?v=1&cfg=json&maj=on&year=${year}&month=${month}&geonameid=293397`);
-      const hebcalData = await hebcalResponse.json();
-      if (hebcalData.items) {
-        hebcalData.items.forEach(event => {
-          const eventDate = new Date(event.date);
-          if (eventDate.getMonth() + 1 === month) {
-            const dayOfMonth = eventDate.getDate();
-            newHolidays[dayOfMonth] = newHolidays[dayOfMonth] ? `${newHolidays[dayOfMonth]}, ${event.title}` : event.title;
-          }
-        });
-      }
-    } catch (error) { console.error('Error fetching Hebrew holidays:', error); }
-
-    for (let day = 1; day <= daysInMonth; day++) {
-      try {
-        const hijriResponse = await fetch(`https://api.aladhan.com/v1/gToH?date=${day}-${month}-${year}`);
-        const hijriData = await hijriResponse.json();
-        if (hijriData.data.hijri.holidays.length > 0) {
-          hijriData.data.hijri.holidays.forEach(holidayName => {
-            if (majorIslamicHolidays.some(mh => holidayName.includes(mh))) {
-              newHolidays[day] = newHolidays[day] ? `${newHolidays[day]}, ${holidayName}` : holidayName;
-            }
-          });
-        }
-      } catch (error) { console.error('Error fetching Islamic holidays:', error); }
-    }
-    setHolidays(newHolidays);
+    const monthHolidays = await fetchHolidaysForMonth(year, month);
+    setHolidays(holidaysByDayOfMonth(monthHolidays, year, month));
   };
 
   const handleMonthChange = (offset) => {
@@ -95,10 +70,10 @@ export default function MonthlyView() {
             <tr>
               <th style={{ position: 'sticky', right: 0, background: '#f8fafc', zIndex: 1 }}>מתמחה</th>
               {monthDays.map(day => (
-                <th key={day} style={{ minWidth: '40px' }}>
+                <th key={day} style={{ minWidth: '40px' }} className={holidays[day] ? 'holiday-col' : ''}>
                   {day}
                   {holidays[day] && (
-                    <div className="date-nav-holiday" style={{ whiteSpace: 'nowrap' }}>{holidays[day]}</div>
+                    <div className="holiday-label" title={holidays[day]}>{holidays[day]}</div>
                   )}
                 </th>
               ))}
@@ -114,7 +89,7 @@ export default function MonthlyView() {
               return (
                 <tr key={intern.id}>
                   <td style={{ whiteSpace: 'nowrap', position: 'sticky', right: 0, background: 'white', zIndex: 1 }}>
-                    <strong>{intern.last_name}</strong>
+                    <StaffName person={intern} as="strong" />
                     {stage && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({stage})</div>}
                   </td>
                   {monthDays.map(day => {
@@ -127,7 +102,7 @@ export default function MonthlyView() {
                     } else { consecutiveCount = 0; lastStationId = null; }
 
                     return (
-                      <td key={day} style={{ background: schedule ? 'var(--primary-light)' : 'transparent', fontSize: '0.75rem' }}>
+                      <td key={day} className={holidays[day] ? 'holiday-col' : ''} style={{ background: schedule ? 'var(--primary-light)' : 'transparent', fontSize: '0.75rem' }}>
                         {schedule ? getStationName(schedule.station_id) : ''}
                         {consecutiveCount > 1 && (
                           <span style={{ color: 'var(--danger)', marginRight: '2px' }}>({consecutiveCount})</span>

@@ -1,20 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import StaffManager from './StaffManager';
 import Dashboard from './Dashboard';
 import AbsenceManager from './AbsenceManager';
 import ScheduleManager from './ScheduleManager';
 import LeaveRequestsManager from './LeaveRequestsManager';
 import MonthlyView from './MonthlyView';
+import InternshipProgramView from './InternshipProgramView';
 import Login from './Login';
 
-const TABS = [
-  { id: 'dashboard', label: 'דאשבורד', icon: '📊' },
+const SHARED_TABS = [
   { id: 'schedule', label: 'סידור עבודה יומי', icon: '📅' },
   { id: 'monthly', label: 'תצוגה חודשית', icon: '🗓️' },
   { id: 'leaveRequests', label: 'בקשות חופשה', icon: '✉️' },
 ];
 
+const GUEST_TABS = [
+  { id: 'internship', label: 'תוכנית התמחות', icon: '📋' },
+  ...SHARED_TABS,
+];
+
 const ADMIN_TABS = [
+  { id: 'dashboard', label: 'דאשבורד', icon: '📊' },
+  ...SHARED_TABS,
+  { id: 'internship', label: 'תוכנית התמחות', icon: '📋' },
   { id: 'staff', label: 'ניהול צוות', icon: '👨‍⚕️' },
   { id: 'absences', label: 'היעדרויות', icon: '🏖️' },
 ];
@@ -23,12 +31,17 @@ function App() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
 
+  const handleLogin = (loggedInUser) => {
+    setUser(loggedInUser);
+    setActiveTab(loggedInUser.role === 'admin' ? 'dashboard' : 'internship');
+  };
+
   if (!user) {
-    return <Login onLogin={setUser} />;
+    return <Login onLogin={handleLogin} />;
   }
 
   const isAdmin = user.role === 'admin';
-  const allTabs = isAdmin ? [...TABS, ...ADMIN_TABS] : TABS;
+  const allTabs = isAdmin ? ADMIN_TABS : GUEST_TABS;
 
   return (
     <div dir="rtl" className="app-shell">
@@ -67,10 +80,11 @@ function App() {
       </nav>
 
       <main className="app-main">
-        {activeTab === 'dashboard' && <Dashboard />}
+        {isAdmin && activeTab === 'dashboard' && <Dashboard />}
         {activeTab === 'schedule' && <ScheduleManager isAdmin={isAdmin} />}
         {activeTab === 'monthly' && <MonthlyView />}
         {activeTab === 'leaveRequests' && <LeaveRequestsManager user={user} />}
+        {activeTab === 'internship' && <InternshipProgramView user={user} isAdmin={isAdmin} />}
         {isAdmin && activeTab === 'staff' && <StaffManager />}
         {isAdmin && activeTab === 'absences' && <AbsenceManager />}
       </main>

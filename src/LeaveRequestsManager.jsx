@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from './api';
+import { StaffName } from './staffDisplay';
 
 export default function LeaveRequestsManager({ user }) {
   const [requests, setRequests] = useState([]);
@@ -41,10 +42,7 @@ export default function LeaveRequestsManager({ user }) {
     }
   };
 
-  const getStaffName = (id) => {
-    const person = staffList.find(s => s.id === id);
-    return person ? person.last_name : id;
-  };
+  const getStaffMember = (id) => staffList.find((s) => s.id === id);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -178,7 +176,7 @@ export default function LeaveRequestsManager({ user }) {
           <tbody>
             {requests.map((req) => (
               <tr key={req.id}>
-                {user.role === 'admin' && <td><strong>{getStaffName(req.staff_id)}</strong></td>}
+                {user.role === 'admin' && <td><StaffName person={getStaffMember(req.staff_id)} as="strong" /></td>}
                 <td><span className="badge badge-danger">{req.status_type}</span></td>
                 <td>{req.start_date}</td>
                 <td>{req.end_date}</td>

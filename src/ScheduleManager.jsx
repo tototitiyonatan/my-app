@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import api from './api';
 import { resolveStageToStationId, getStationLabel, isNonStationStage } from './stageToStation';
 import useIsMobile from './useIsMobile';
+import { fetchHolidaysForDay } from './holidays';
+import { StaffName } from './staffDisplay';
 
 export default function ScheduleManager({ isAdmin }) {
   const [stations, setStations] = useState([]);
@@ -15,7 +17,6 @@ export default function ScheduleManager({ isAdmin }) {
   const [parentStationId, setParentStationId] = useState('');
   const [dayOffset, setDayOffset] = useState(0);
   const [selectedStaffId, setSelectedStaffId] = useState(null);
-  const [stageUploadMsg, setStageUploadMsg] = useState('');
   const [autoScheduling, setAutoScheduling] = useState(false);
   const isMobile = useIsMobile();
 
@@ -38,44 +39,12 @@ export default function ScheduleManager({ isAdmin }) {
 
   useEffect(() => {
     fetchData();
-    fetchHolidays([currentDay]);
+    loadHolidays();
   }, [dayOffset]);
 
-  const fetchHolidays = async (days) => {
-    const newHolidays = {};
-    const firstDay = new Date(days[0]);
-    const year = firstDay.getFullYear();
-    const month = firstDay.getMonth() + 1;
-    const majorIslamicHolidays = ["Eid al-Fitr", "Eid al-Adha", "Laylat al-Qadr", "Muharram", "Mawlid al-Nabi"];
-
-    try {
-      const hebcalResponse = await fetch(`https://www.hebcal.com/hebcal?v=1&cfg=json&maj=on&year=${year}&month=${month}&geonameid=293397`);
-      const hebcalData = await hebcalResponse.json();
-      if (hebcalData.items) {
-        hebcalData.items.forEach(event => {
-          const eventDate = new Date(event.date).toISOString().split('T')[0];
-          if (days.includes(eventDate)) {
-            newHolidays[eventDate] = newHolidays[eventDate] ? `${newHolidays[eventDate]}, ${event.title}` : event.title;
-          }
-        });
-      }
-    } catch (error) { console.error('Error fetching Hebrew holidays:', error); }
-
-    for (const day of days) {
-      try {
-        const [y, m, d] = day.split('-');
-        const hijriResponse = await fetch(`https://api.aladhan.com/v1/gToH?date=${d}-${m}-${y}`);
-        const hijriData = await hijriResponse.json();
-        if (hijriData.data.hijri.holidays.length > 0) {
-          hijriData.data.hijri.holidays.forEach(holidayName => {
-            if (majorIslamicHolidays.some(mh => holidayName.includes(mh))) {
-              newHolidays[day] = newHolidays[day] ? `${newHolidays[day]}, ${holidayName}` : holidayName;
-            }
-          });
-        }
-      } catch (error) { console.error('Error fetching Islamic holidays:', error); }
-    }
-    setHolidays(newHolidays);
+  const loadHolidays = async () => {
+    const holiday = await fetchHolidaysForDay(currentDay);
+    setHolidays(holiday ? { [currentDay]: holiday } : {});
   };
 
   const fetchData = async () => {
@@ -123,22 +92,6 @@ export default function ScheduleManager({ isAdmin }) {
     } catch (error) { alert(error.response?.data?.detail || 'שגיאה במחיקת השיבוץ'); }
   };
 
-  const handleUploadStages = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append('file', file);
-    try {
-      const res = await api.post('/intern-stages/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      setStageUploadMsg(res.data.message);
-      fetchData();
-    } catch (error) {
-      setStageUploadMsg(error.response?.data?.detail || 'שגיאה בהעלאת קובץ השלבים');
-    }
-  };
-
   const getStationDisplayName = (station) => {
     if (station.parent_station_id) {
       const parent = stations.find((s) => s.id === station.parent_station_id);
@@ -147,8 +100,10 @@ export default function ScheduleManager({ isAdmin }) {
     return station.name;
   };
 
+  const getStaffMember = (id) => staff.find((s) => s.id === id);
+
   const getStaffName = (id) => {
-    const person = staff.find(s => s.id === id);
+    const person = getStaffMember(id);
     return person ? person.last_name : id;
   };
 
@@ -299,10 +254,15 @@ export default function ScheduleManager({ isAdmin }) {
       className={`unscheduled-chip${selectedStaffId === person.id ? ' selected' : ''}`}
       disabled={!isAdmin}
     >
-      {person.last_name}
+      <StaffName person={person} as="span" />
       {stage && <span className="unscheduled-chip-stage">({stage})</span>}
     </button>
   );
+
+  const renderStaffName = (staffId, as = 'span') => {
+    const person = getStaffMember(staffId);
+    return person ? <StaffName person={person} as={as} /> : <span>{staffId}</span>;
+  };
 
   const unscheduledForDay = getUnscheduledForDay(currentDay);
 
@@ -328,11 +288,6 @@ export default function ScheduleManager({ isAdmin }) {
               </select>
               <button type="submit" className="btn btn-success btn-sm">הוסף תחנה</button>
             </form>
-            <label className="btn btn-primary btn-sm" style={{ cursor: 'pointer' }}>
-              📄 העלה קובץ שלבי מתמחים
-              <input type="file" accept=".xlsx,.xls,.csv" onChange={handleUploadStages} style={{ display: 'none' }} />
-            </label>
-            {stageUploadMsg && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{stageUploadMsg}</span>}
           </div>
         )}
 
@@ -363,7 +318,7 @@ export default function ScheduleManager({ isAdmin }) {
       {isAdmin && selectedStaffId && (
         <div className="selection-banner no-print">
           <span>
-            נבחר: <strong>{getStaffName(selectedStaffId)}</strong>
+            נבחר: {renderStaffName(selectedStaffId, 'strong')}
             {isMobile ? ' — בחר תחנה מהרשימה למטה' : ' — לחץ על תחנה לשיבוץ'}
           </span>
           <button type="button" className="btn btn-outline btn-sm" onClick={() => setSelectedStaffId(null)}>
@@ -457,7 +412,7 @@ export default function ScheduleManager({ isAdmin }) {
                       return (
                         <div key={s.id} className="schedule-chip">
                           <span>
-                            {getStaffName(s.staff_id)}
+                            {renderStaffName(s.staff_id)}
                             {stage && <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>({stage})</div>}
                           </span>
                           {isAdmin && (
@@ -499,7 +454,7 @@ export default function ScheduleManager({ isAdmin }) {
                   .filter(a => a.start_date <= currentDay && a.end_date >= currentDay)
                   .map(absence => (
                     <div key={absence.id} className="absence-chip">
-                      <strong>{getStaffName(absence.staff_id)}</strong><br />
+                      {renderStaffName(absence.staff_id, 'strong')}<br />
                       <span style={{ fontSize: '0.65rem', color: 'var(--danger)' }}>{absence.status_type}</span>
                     </div>
                   ))}

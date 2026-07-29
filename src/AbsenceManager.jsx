@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from './api';
+import { StaffName } from './staffDisplay';
 
 export default function AbsenceManager() {
   const [absencesList, setAbsencesList] = useState([]);
@@ -74,10 +75,7 @@ export default function AbsenceManager() {
     }
   };
 
-  const getStaffName = (id) => {
-    const person = staffList.find(s => s.id === id);
-    return person ? person.last_name : id;
-  };
+  const getStaffMember = (id) => staffList.find((s) => s.id === id);
 
   return (
     <div>
@@ -152,7 +150,7 @@ export default function AbsenceManager() {
           <tbody>
             {absencesList.map((absence) => (
               <tr key={absence.id}>
-                <td><strong>{getStaffName(absence.staff_id)}</strong></td>
+                <td><StaffName person={getStaffMember(absence.staff_id)} as="strong" /></td>
                 <td><span className="badge badge-danger">{absence.status_type}</span></td>
                 <td>{formatDateToIL(absence.start_date)}</td>
                 <td>{formatDateToIL(absence.end_date)}</td>

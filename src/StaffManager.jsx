@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from './api';
+import { StaffName } from './staffDisplay';
 
 export default function StaffManager() {
   const [staffList, setStaffList] = useState([]);
@@ -14,6 +15,7 @@ export default function StaffManager() {
   const [editingId, setEditingId] = useState(null);
   const [editFormData, setEditFormData] = useState({});
   const [selectedFile, setSelectedFile] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchStaff = async () => {
     try {
@@ -111,6 +113,19 @@ export default function StaffManager() {
     }
   };
 
+  const filteredStaff = staffList.filter((s) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.trim().toLowerCase();
+    return (
+      s.id.includes(q) ||
+      s.first_name.toLowerCase().includes(q) ||
+      s.last_name.toLowerCase().includes(q) ||
+      s.role.toLowerCase().includes(q) ||
+      (s.phone && s.phone.includes(q)) ||
+      (s.email && s.email.toLowerCase().includes(q))
+    );
+  });
+
   return (
     <div>
       <h2 className="section-title">ניהול אנשי צוות</h2>
@@ -177,6 +192,16 @@ export default function StaffManager() {
       </div>
 
       <h3>רשימת הצוות</h3>
+      <div className="form-group section-spacing" style={{ maxWidth: '400px' }}>
+        <label className="form-label">חיפוש</label>
+        <input
+          type="search"
+          className="form-input"
+          placeholder="חפש לפי שם, ת.ז., תפקיד, טלפון..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
       <div className="table-wrapper">
         <table className="data-table">
           <thead>
@@ -190,10 +215,10 @@ export default function StaffManager() {
             </tr>
           </thead>
           <tbody>
-            {staffList.map((staff) => (
+            {filteredStaff.map((staff) => (
               <tr key={staff.id}>
                 <td>{staff.id}</td>
-                <td><strong>{staff.first_name} {staff.last_name}</strong></td>
+                <td><StaffName person={staff} as="strong" /> <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({staff.first_name})</span></td>
                 <td><span className="badge badge-info">{staff.role}</span></td>
                 <td>{staff.phone}</td>
                 <td>{staff.email}</td>
