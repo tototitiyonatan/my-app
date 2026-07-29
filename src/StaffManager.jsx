@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import api from './api';
 import { StaffName } from './staffDisplay';
-import { getTraining, setTraining, TRAINING_OPTIONS } from './staffTraining';
+import { TRAINING_OPTIONS } from './staffTraining';
 import InternProgramSingle from './InternProgramSingle';
 
 export default function StaffManager() {
   const [staffList, setStaffList] = useState([]);
-  const [trainingMap, setTrainingMap] = useState({});
   const [formData, setFormData] = useState({
     id: '',
     first_name: '',
@@ -26,11 +25,6 @@ export default function StaffManager() {
     try {
       const response = await api.get('/staff/');
       setStaffList(response.data);
-      setTrainingMap(
-        Object.fromEntries(
-          response.data.map((s) => [s.id, getTraining(s.id)])
-        )
-      );
     } catch (error) {
       console.error('שגיאה בשליפת נתונים:', error);
     }
@@ -48,17 +42,25 @@ export default function StaffManager() {
     setEditFormData({ ...editFormData, [e.target.name]: e.target.value });
   };
 
-  const saveTraining = (staffId, value) => {
-    setTraining(staffId, value);
-    setTrainingMap((prev) => ({ ...prev, [staffId]: value }));
+  const buildStaffPayload = (data) => {
+    const payload = {
+      id: data.id,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      role: data.role,
+      phone: data.phone || null,
+      email: data.email || null,
+    };
+    if (data.role === 'מתמחה') {
+      payload.training = data.training || null;
+    }
+    return payload;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { training, ...staffPayload } = formData;
     try {
-      await api.post('/staff/', staffPayload);
-      if (staffPayload.role === 'מתמחה') saveTraining(staffPayload.id, training);
+      await api.post('/staff/', buildStaffPayload(formData));
       alert('איש צוות נוסף בהצלחה!');
       fetchStaff();
       setFormData({ id: '', first_name: '', last_name: '', role: 'מתמחה', phone: '', email: '', training: '' });
@@ -69,11 +71,9 @@ export default function StaffManager() {
 
   const handleUpdate = async (e) => {
     e.preventDefault();
-    const { training, ...staffPayload } = editFormData;
+    const { id, ...updateFields } = buildStaffPayload(editFormData);
     try {
-      await api.put(`/staff/${editingId}`, staffPayload);
-      if (staffPayload.role === 'מתמחה') saveTraining(editingId, training || '');
-      else saveTraining(editingId, '');
+      await api.put(`/staff/${editingId}`, updateFields);
       alert('פרטי איש צוות עודכנו בהצלחה!');
       setEditingId(null);
       fetchStaff();
@@ -86,7 +86,6 @@ export default function StaffManager() {
     if (!window.confirm('האם אתה בטוח שברצונך למחוק איש צוות זה?')) return;
     try {
       await api.delete(`/staff/${id}`);
-      saveTraining(id, '');
       alert('איש צוות נמחק בהצלחה');
       fetchStaff();
     } catch (error) {
@@ -109,12 +108,20 @@ export default function StaffManager() {
     setEditingId(staff.id);
     setEditFormData({
       ...staff,
-      training: staff.role === 'מתמחה' ? getTraining(staff.id) : '',
+      training: staff.role === 'מתמחה' ? (staff.training || '') : '',
     });
   };
 
-  const handleTrainingChange = (staffId, value) => {
-    saveTraining(staffId, value);
+  const handleTrainingChange = async (staffId, value) => {
+    try {
+      await api.put(`/staff/${staffId}`, { training: value || null });
+      setStaffList((prev) =>
+        prev.map((s) => (s.id === staffId ? { ...s, training: value || null } : s))
+      );
+    } catch (error) {
+      alert('שגיאה בעדכון הכשרה: ' + (error.response?.data?.detail || error.message));
+      fetchStaff();
+    }
   };
 
   const handleFileChange = (event) => {
@@ -144,7 +151,7 @@ export default function StaffManager() {
   const filteredStaff = staffList.filter((s) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.trim().toLowerCase();
-    const training = trainingMap[s.id] || '';
+    const training = s.training || '';
     return (
       s.id.includes(q) ||
       s.first_name.toLowerCase().includes(q) ||
@@ -297,7 +304,7 @@ export default function StaffManager() {
                     <select
                       className="form-select"
                       style={{ minWidth: '160px', padding: '0.35rem 0.5rem', fontSize: '0.8rem' }}
-                      value={trainingMap[staff.id] || ''}
+                      value={staff.training || ''}
                       onChange={(e) => handleTrainingChange(staff.id, e.target.value)}
                     >
                       <option value="">—</option>
