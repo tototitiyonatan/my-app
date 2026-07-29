@@ -114,7 +114,7 @@ export default function MonthlyView() {
               return (
                 <tr key={intern.id}>
                   <td style={{ whiteSpace: 'nowrap', position: 'sticky', right: 0, background: 'white', zIndex: 1 }}>
-                    <strong>{intern.first_name} {intern.last_name}</strong>
+                    <strong>{intern.last_name}</strong>
                     {stage && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({stage})</div>}
                   </td>
                   {monthDays.map(day => {

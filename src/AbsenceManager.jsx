@@ -76,7 +76,7 @@ export default function AbsenceManager() {
 
   const getStaffName = (id) => {
     const person = staffList.find(s => s.id === id);
-    return person ? `${person.first_name} ${person.last_name}` : id;
+    return person ? person.last_name : id;
   };
 
   return (
@@ -91,7 +91,7 @@ export default function AbsenceManager() {
             <select name="staff_id" className="form-select" value={formData.staff_id} onChange={handleChange} required>
               {staffList.map(staff => (
                 <option key={staff.id} value={staff.id}>
-                  {staff.first_name} {staff.last_name} ({staff.role})
+                  {staff.last_name} ({staff.role})
                 </option>
               ))}
             </select>

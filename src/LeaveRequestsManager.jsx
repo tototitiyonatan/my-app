@@ -43,7 +43,7 @@ export default function LeaveRequestsManager({ user }) {
 
   const getStaffName = (id) => {
     const person = staffList.find(s => s.id === id);
-    return person ? `${person.first_name} ${person.last_name}` : id;
+    return person ? person.last_name : id;
   };
 
   const handleSubmit = async (e) => {
@@ -94,7 +94,7 @@ export default function LeaveRequestsManager({ user }) {
               >
                 {staffList.map(staff => (
                   <option key={staff.id} value={staff.id}>
-                    {staff.first_name} {staff.last_name} ({staff.role})
+                    {staff.last_name} ({staff.role})
                   </option>
                 ))}
               </select>
