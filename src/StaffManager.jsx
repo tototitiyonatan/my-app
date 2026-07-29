@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import api from './api';
 import { StaffName } from './staffDisplay';
-import { TRAINING_OPTIONS } from './staffTraining';
+import { parseTraining, serializeTraining } from './staffTraining';
+import TrainingSelector from './TrainingSelector';
 import InternProgramSingle from './InternProgramSingle';
 
 export default function StaffManager() {
@@ -52,7 +53,7 @@ export default function StaffManager() {
       email: data.email || null,
     };
     if (data.role === 'מתמחה') {
-      payload.training = data.training || null;
+      payload.training = serializeTraining(parseTraining(data.training));
     }
     return payload;
   };
@@ -113,10 +114,11 @@ export default function StaffManager() {
   };
 
   const handleTrainingChange = async (staffId, value) => {
+    const training = serializeTraining(parseTraining(value));
     try {
-      await api.put(`/staff/${staffId}`, { training: value || null });
+      await api.put(`/staff/${staffId}`, { training });
       setStaffList((prev) =>
-        prev.map((s) => (s.id === staffId ? { ...s, training: value || null } : s))
+        prev.map((s) => (s.id === staffId ? { ...s, training } : s))
       );
     } catch (error) {
       alert('שגיאה בעדכון הכשרה: ' + (error.response?.data?.detail || error.message));
@@ -202,19 +204,18 @@ export default function StaffManager() {
             </select>
           </div>
           {showTrainingField && (
-            <div className="form-group">
+            <div className="form-group full-width">
               <label className="form-label">הכשרה</label>
-              <select
-                name="training"
-                className="form-select"
+              <TrainingSelector
                 value={editingId ? (editFormData.training || '') : (formData.training || '')}
-                onChange={editingId ? handleEditChange : handleChange}
-              >
-                <option value="">— ללא —</option>
-                {TRAINING_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
+                onChange={(training) => {
+                  if (editingId) {
+                    setEditFormData({ ...editFormData, training });
+                  } else {
+                    setFormData({ ...formData, training });
+                  }
+                }}
+              />
             </div>
           )}
           <div className="form-group">
@@ -301,17 +302,11 @@ export default function StaffManager() {
                 <td><span className="badge badge-info">{staff.role}</span></td>
                 <td>
                   {staff.role === 'מתמחה' ? (
-                    <select
-                      className="form-select"
-                      style={{ minWidth: '160px', padding: '0.35rem 0.5rem', fontSize: '0.8rem' }}
+                    <TrainingSelector
+                      compact
                       value={staff.training || ''}
-                      onChange={(e) => handleTrainingChange(staff.id, e.target.value)}
-                    >
-                      <option value="">—</option>
-                      {TRAINING_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
+                      onChange={(training) => handleTrainingChange(staff.id, training)}
+                    />
                   ) : (
                     '—'
                   )}
