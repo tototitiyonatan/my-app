@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from './api';
 import { findStaffByLogin } from './staffDisplay';
 
@@ -7,6 +7,9 @@ export default function Login({ onLogin }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [staffList, setStaffList] = useState([]);
+  const [selectedPerson, setSelectedPerson] = useState(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const wrapperRef = useRef(null);
 
   useEffect(() => {
     const fetchStaff = async () => {
@@ -20,6 +23,36 @@ export default function Login({ onLogin }) {
     fetchStaff();
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const query = userId.trim();
+  const suggestions = query.length >= 1 && !selectedPerson
+    ? staffList.filter((s) => {
+        const q = query.toLowerCase();
+        return (
+          s.last_name.toLowerCase().startsWith(q) ||
+          s.last_name.toLowerCase().includes(q) ||
+          s.id.startsWith(query) ||
+          s.first_name.toLowerCase().startsWith(q)
+        );
+      }).slice(0, 8)
+    : [];
+
+  const handleSelectSuggestion = (person) => {
+    setUserId(person.last_name);
+    setSelectedPerson(person);
+    setShowSuggestions(false);
+    setError('');
+  };
+
   const handleLogin = (e) => {
     e.preventDefault();
 
@@ -32,26 +65,25 @@ export default function Login({ onLogin }) {
       return;
     }
 
-    const person = findStaffByLogin(staffList, userId);
+    const person = selectedPerson || findStaffByLogin(staffList, userId);
     if (person) {
-      if (password === person.phone) {
+      if (password.trim() === person.last_name.trim()) {
         onLogin({
           role: 'guest',
           name: person.last_name,
           id: person.id,
         });
       } else {
-        setError('סיסמה שגויה. הסיסמה שלך היא מספר הטלפון המעודכן במערכת.');
+        setError('סיסמה שגויה. הסיסמה היא שם המשפחה שלך.');
       }
     } else {
-      const trimmed = userId.trim();
       const lastNameMatches = staffList.filter(
-        (s) => s.last_name.trim().toLowerCase() === trimmed.toLowerCase()
+        (s) => s.last_name.trim().toLowerCase() === query.toLowerCase()
       );
       if (lastNameMatches.length > 1) {
-        setError('נמצאו מספר אנשי צוות עם שם משפחה זה. הזן ת.ז.');
+        setError('נמצאו מספר אנשי צוות עם שם משפחה זה. בחר מהרשימה.');
       } else {
-        setError('לא נמצא במערכת. הזן ת.ז. או שם משפחה, או פנה למנהל.');
+        setError('לא נמצא במערכת. בחר שם משפחה מהרשימה או פנה למנהל.');
       }
     }
   };
@@ -64,24 +96,47 @@ export default function Login({ onLogin }) {
         <p className="login-subtitle">חטיבת נשים · בית חולים סורוקה</p>
 
         <form onSubmit={handleLogin} className="login-form">
-          <div className="form-group">
-            <label className="form-label">ת.ז. / שם משפחה</label>
+          <div className="form-group login-autocomplete" ref={wrapperRef}>
+            <label className="form-label">שם משפחה</label>
             <input
               type="text"
               className="form-input"
-              placeholder="הזן ת.ז., שם משפחה, או admin"
+              placeholder="התחל להקליד שם משפחה..."
               value={userId}
-              onChange={(e) => { setUserId(e.target.value); setError(''); }}
+              onChange={(e) => {
+                setUserId(e.target.value);
+                setSelectedPerson(null);
+                setError('');
+                setShowSuggestions(true);
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              autoComplete="off"
               required
             />
+            {showSuggestions && suggestions.length > 0 && (
+              <ul className="login-suggestions">
+                {suggestions.map((person) => (
+                  <li key={person.id}>
+                    <button
+                      type="button"
+                      className="login-suggestion-btn"
+                      onClick={() => handleSelectSuggestion(person)}
+                    >
+                      <strong>{person.last_name}</strong>
+                      <span>{person.first_name} · {person.role}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div className="form-group">
-            <label className="form-label">סיסמה</label>
+            <label className="form-label">סיסמה (שם משפחה)</label>
             <input
               type="password"
               className="form-input"
-              placeholder="הזן סיסמה"
+              placeholder="הזן שם משפחה"
               value={password}
               onChange={(e) => { setPassword(e.target.value); setError(''); }}
               required
@@ -97,8 +152,8 @@ export default function Login({ onLogin }) {
 
         <p className="form-hint" style={{ marginTop: '1.5rem' }}>
           מנהל: הזן admin וסיסמת ניהול.<br />
-          רופאים/מתמחים: ניתן להיכנס עם ת.ז. או שם משפחה.<br />
-          הסיסמה היא <strong>מספר הטלפון</strong> המעודכן במערכת.
+          רופאים/מתמחים: בחר שם משפחה מהרשימה.<br />
+          שם משתמש וסיסמה הם <strong>שם המשפחה</strong> שלך.
         </p>
       </div>
     </div>

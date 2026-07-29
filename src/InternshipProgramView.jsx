@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from './api';
 import { StaffName } from './staffDisplay';
+import { getStageStyle } from './stageColors';
 
 const MONTH_NAMES = [
   'ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני',
@@ -133,7 +134,7 @@ export default function InternshipProgramView({ user, isAdmin }) {
                   {months.map((month) => {
                     const stage = getStage(intern.id, month);
                     return (
-                      <td key={month} className={stage ? 'internship-cell-active' : ''}>
+                      <td key={month} style={getStageStyle(stage)}>
                         {stage || '—'}
                       </td>
                     );

@@ -582,6 +582,55 @@ p {
   text-align: right;
 }
 
+.login-autocomplete {
+  position: relative;
+}
+
+.login-suggestions {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  max-height: 240px;
+  overflow-y: auto;
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 200;
+}
+
+.login-suggestion-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9rem;
+  text-align: right;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.login-suggestion-btn:last-child {
+  border-bottom: none;
+}
+
+.login-suggestion-btn:hover {
+  background: var(--primary-light);
+}
+
+.login-suggestion-btn span {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
 /* ── Page Sections ── */
 
 .page-header {
@@ -790,10 +839,6 @@ button.unscheduled-chip:disabled {
   margin-top: 0.15rem;
 }
 
-.holiday-col {
-  background: #fff8e1 !important;
-}
-
 .internship-table td,
 .internship-table th {
   text-align: center;
@@ -807,11 +852,6 @@ button.unscheduled-chip:disabled {
   z-index: 1;
   text-align: right;
   white-space: nowrap;
-}
-
-.internship-cell-active {
-  background: var(--primary-light);
-  font-weight: 500;
 }
 
 .date-nav-holiday {

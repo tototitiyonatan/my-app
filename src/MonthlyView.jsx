@@ -70,7 +70,7 @@ export default function MonthlyView() {
             <tr>
               <th style={{ position: 'sticky', right: 0, background: '#f8fafc', zIndex: 1 }}>מתמחה</th>
               {monthDays.map(day => (
-                <th key={day} style={{ minWidth: '40px' }} className={holidays[day] ? 'holiday-col' : ''}>
+                <th key={day} style={{ minWidth: '40px' }}>
                   {day}
                   {holidays[day] && (
                     <div className="holiday-label" title={holidays[day]}>{holidays[day]}</div>
@@ -102,7 +102,7 @@ export default function MonthlyView() {
                     } else { consecutiveCount = 0; lastStationId = null; }
 
                     return (
-                      <td key={day} className={holidays[day] ? 'holiday-col' : ''} style={{ background: schedule ? 'var(--primary-light)' : 'transparent', fontSize: '0.75rem' }}>
+                      <td key={day} style={{ background: schedule ? 'var(--primary-light)' : 'transparent', fontSize: '0.75rem' }}>
                         {schedule ? getStationName(schedule.station_id) : ''}
                         {consecutiveCount > 1 && (
                           <span style={{ color: 'var(--danger)', marginRight: '2px' }}>({consecutiveCount})</span>
